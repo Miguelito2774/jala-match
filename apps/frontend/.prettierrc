@@ -1,0 +1,36 @@
+{
+  "printWidth": 120,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "semi": true,
+  "useTabs": false,
+  "bracketSameLine": false,
+  "jsxSingleQuote": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+
+  "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+
+  "importOrder": [
+    "^react$",
+    "",
+    "^next(.*)$",
+    "",
+    "^@/(.*)$",
+    "",
+    "",
+    "^@(.*)$",
+    "",
+    "<BUILTIN_MODULES>",
+    "",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^[./]"
+  ],
+  "importOrderCaseSensitive": true,
+
+  "tailwindStylesheet": "./src/app/globals.css",
+  "tailwindFunctions": ["clsx", "clt", "cn", "tw"]
+}

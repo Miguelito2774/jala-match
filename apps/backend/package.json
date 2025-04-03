@@ -1,0 +1,8 @@
+{
+  "name": "backend",
+  "scripts": {
+    "dev": "dotnet watch --project ./src/Presentation run",
+    "restore": "dotnet restore",
+    "build": "dotnet build --configuration Release --no-restore"
+  }
+}

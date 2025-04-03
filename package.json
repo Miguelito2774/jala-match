@@ -1,0 +1,16 @@
+{
+  "name": "jala-match",
+  "description": "Jala Match - A web application for matching developers based on their interests and preferences.",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "compose:up": "docker compose up -d",
+    "dev": "pnpm --parallel dev",
+    "restore": "pnpm -F=backend restore",
+    "build": "pnpm --parallel build",
+    "lint": "pnpm -F=frontend lint",
+    "format": "pnpm -F=frontend format",
+    "format:check": "pnpm -F=frontend format:check"
+  }
+}

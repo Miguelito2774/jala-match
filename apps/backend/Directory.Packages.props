@@ -1,0 +1,16 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- Static code analysis -->
+        <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.4.0.108396" />
+        <!-- SharedKernel -->
+        <!-- Application -->
+        <!-- Infrastructure -->
+        <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+        <!-- Presentation -->
+        <PackageVersion Include="oqo0.SwaggerThemes" Version="1.4.3" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    </ItemGroup>
+</Project>

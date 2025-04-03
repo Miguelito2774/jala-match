@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate-code:
-    name: Restore, Build, Lint and Publish Project
+    name: Restore, Lint, Format, Build
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -47,7 +47,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Lint
+      - name: Check Format
         run: pnpm format:check
 
       - name: Build

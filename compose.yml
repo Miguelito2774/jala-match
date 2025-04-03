@@ -1,14 +1,14 @@
 services:
   papercut:
     image: changemakerstudiosus/papercut-smtp:7.0.0-rc1
-    container_name: papercut
+    container_name: jala-papercut
     ports:
       - '8080:80'
       - '25:25'
 
   redis:
     image: redislabs/redismod
-    container_name: redis
+    container_name: jala-redis
     volumes:
       - redis-data:/data
     ports:
@@ -16,7 +16,7 @@ services:
 
   postgres:
     image: postgres:17
-    container_name: postgres
+    container_name: jala-postgres
     environment:
       - POSTGRES_DB=postgres-db
       - POSTGRES_USER=postgres

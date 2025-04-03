@@ -9,6 +9,7 @@
     "dev": "pnpm --parallel dev",
     "restore": "pnpm -F=backend restore",
     "build": "pnpm --parallel build",
+    "migrate:add": "pnpm -F=backend migrate:add",
     "lint": "pnpm -F=frontend lint",
     "format": "pnpm -F=frontend format",
     "format:check": "pnpm -F=frontend format:check"

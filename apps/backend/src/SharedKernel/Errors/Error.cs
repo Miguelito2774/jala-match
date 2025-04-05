@@ -39,4 +39,9 @@ public record Error(string Code, string Description, ErrorType Type)
     {
         return new Error(code, description, ErrorType.Forbidden);
     }
+    
+    public static Error Validation(string code, string description)
+    {
+        return new Error(code, description, ErrorType.Validation);
+    }
 }

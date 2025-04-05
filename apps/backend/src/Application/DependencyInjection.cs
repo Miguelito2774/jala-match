@@ -11,16 +11,12 @@ public static class DependencyInjection
         services.AddMediatR(config =>
         {
             config.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
-
             config.AddOpenBehavior(typeof(RequestLoggingPipelineBehavior<,>));
             config.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
         });
 
-        services.AddValidatorsFromAssembly(
-            typeof(DependencyInjection).Assembly,
-            includeInternalTypes: true
-        );
-
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
+    
         return services;
     }
 }

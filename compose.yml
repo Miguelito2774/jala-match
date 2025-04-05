@@ -26,6 +26,16 @@ services:
     ports:
       - '5432:5432'
 
+    ai-service:
+      build: ./services/ai-team-generator
+      container_name: jala-ai-service
+      environment:
+        - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      ports:
+        - '8001:8001'
+    depends_on:
+      - redis
+
 volumes:
   redis-data:
   postgres-data:

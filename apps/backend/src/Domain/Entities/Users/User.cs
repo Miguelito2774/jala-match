@@ -1,13 +1,17 @@
 using Domain.Entities.Enums;
+using Domain.Entities.Profiles;
+using Domain.Entities.Teams;
 using SharedKernel.Domain;
 
 namespace Domain.Entities.Users;
 
 public sealed class User : Entity
 {
-    public required string Email { get; init; }
-    public required string PasswordHash { get; init; }
-    public required Role Role { get; init; }
-    public Uri? ProfilePictureUrl { get; init; }
-    public bool IsActive { get; init; } = true;
+    public required string Email { get; set; } = null!;
+    public required string PasswordHash { get; set; } = null!;
+    public required  Role Role { get; set; }
+    public required Uri ProfilePictureUrl { get; set; }
+    public required EmployeeProfile? EmployeeProfile { get; set; }
+    public required ICollection<Team> CreatedTeams { get; set; } = new List<Team>();
+    public required ICollection<ProfileVerification> Reviews { get; set; } = new List<ProfileVerification>();
 }

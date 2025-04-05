@@ -11,5 +11,10 @@ internal sealed class UserConfiguration : EntityConfiguration<User>
         builder.HasIndex(u => u.Email).IsUnique();
 
         builder.Property(u => u.Role).HasConversion<int>();
+        
+        builder.Property(u => u.PasswordHash).HasMaxLength(255).IsRequired();
+        
+        builder.Property(u => u.ProfilePictureUrl).HasMaxLength(512);
+        
     }
 }

@@ -1,4 +1,5 @@
 using Application.Abstractions.Data;
+using Application.Abstractions.Services;
 using Domain.Services;
 using Infrastructure.Database;
 using Infrastructure.Services;
@@ -18,11 +19,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration,
-        IWebHostEnvironment environment
-    )
+        IWebHostEnvironment environment)
     {
         return services
-            .AddServices()
+            .AddServices(configuration) 
             .AddDatabase(configuration)
             .AddHealthChecks(configuration)
             .AddAuthenticationInternal()
@@ -30,10 +30,17 @@ public static class DependencyInjection
             .AddCacheInternal(configuration);
     }
 
-    private static IServiceCollection AddServices(this IServiceCollection services)
+    private static IServiceCollection AddServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ICacheService, CacheService>();
-
+        services.AddScoped<ITeamService, TeamService>();
+    
+        services.AddHttpClient<ITeamService, TeamService>(client => 
+        {
+            client.BaseAddress = new Uri(configuration["AIService:BaseUrl"]!);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+    
         return services;
     }
 

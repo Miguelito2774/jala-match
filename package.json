@@ -7,6 +7,7 @@
   "scripts": {
     "compose:up": "docker compose up -d",
     "dev": "pnpm --parallel dev",
+    "dev:ai": "cd services/ai-team-generator && uvicorn main:app --host 0.0.0.0 --port 8001",
     "restore": "pnpm -F=backend restore",
     "build": "pnpm --parallel build",
     "migrate:add": "pnpm -F=backend migrate:add",

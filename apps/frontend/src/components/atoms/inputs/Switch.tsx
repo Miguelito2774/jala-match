@@ -1,0 +1,32 @@
+import React from 'react';
+
+import { cn } from '@/lib/utils';
+
+interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+  label?: string;
+  onChange?: (checked: boolean) => void;
+}
+
+export const Switch = ({ className, label, checked, onChange, ...props }: SwitchProps) => {
+  return (
+    <label className="flex cursor-pointer items-center">
+      <div className="relative">
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={checked}
+          onChange={(e) => onChange && onChange(e.target.checked)}
+          {...props}
+        />
+        <div className={cn('h-6 w-10 block rounded-full', checked ? 'bg-blue-600' : 'bg-gray-300', className)} />
+        <div
+          className={cn(
+            'left-1 top-1 h-4 w-4 bg-white absolute rounded-full transition-transform',
+            checked && 'translate-x-4',
+          )}
+        />
+      </div>
+      {label && <span className="ml-3 text-sm font-medium text-gray-700">{label}</span>}
+    </label>
+  );
+};

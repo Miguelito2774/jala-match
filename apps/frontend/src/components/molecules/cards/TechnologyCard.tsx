@@ -36,16 +36,16 @@ export const TechnologyCard = ({ name, level, category, onRemove, className }: T
   return (
     <div
       className={cn(
-        'rounded-lg border-gray-200 bg-white p-3 shadow-sm flex items-center justify-between border',
+        'flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
         className,
       )}
     >
       <div className="flex items-center">
         <div>
           <h4 className="font-medium text-gray-900">{name}</h4>
-          <div className="mt-1 gap-2 flex flex-wrap">
-            <span className={cn('px-2 py-0.5 text-xs font-medium rounded-full', getLevelColor(level))}>{level}</span>
-            <span className="bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 rounded-full">{category}</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', getLevelColor(level))}>{level}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">{category}</span>
           </div>
         </div>
       </div>

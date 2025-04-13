@@ -17,7 +17,7 @@ export const ForgotPasswordForm = () => {
   };
 
   return (
-    <div className="max-w-md space-y-6 w-full">
+    <div className="w-full max-w-md space-y-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900">Recuperar Contraseña</h1>
         <p className="mt-2 text-gray-600">
@@ -60,7 +60,7 @@ export const ForgotPasswordForm = () => {
         </form>
       )}
 
-      <div className="text-sm text-gray-600 text-center">
+      <div className="text-center text-sm text-gray-600">
         <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
           Volver a Iniciar Sesión
         </Link>

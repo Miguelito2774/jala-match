@@ -17,20 +17,17 @@ import { Loader2 } from 'lucide-react';
 
 import { TeamResultsPage } from './TeamResultsPage';
 
-// Define TypeScript interfaces para mayor seguridad en tipos
 interface SelectOption {
   value: string | number;
   label: string;
 }
 
 export const TeamBuilder = () => {
-  // Obtener datos de la API
   const { roles, loading: loadingRoles } = useRoles();
   const { technologies, loading: loadingTech } = useTechnologies();
   const { criteria, loading: loadingCriteria } = useWeightCriteria();
   const { generateTeam, loading: generatingTeam, generatedTeam } = useTeamGenerator();
 
-  // Estados internos
   const [teamSize, setTeamSize] = useState<number>(3);
   const [teamRoles, setTeamRoles] = useState<{ role: string; level: string }[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
@@ -39,12 +36,10 @@ export const TeamBuilder = () => {
   const [showWeightsDialog, setShowWeightsDialog] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // Estados para selección de tecnologías por categoría
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
   const [availableTechOptions, setAvailableTechOptions] = useState<SelectOption[]>([]);
 
-  // Inicializa los weights desde los criterios
   useEffect(() => {
     if (criteria.length > 0) {
       const initialWeights = criteria.reduce(
@@ -58,7 +53,6 @@ export const TeamBuilder = () => {
     }
   }, [criteria]);
 
-  // Inicializa los roles del equipo según el tamaño
   useEffect(() => {
     if (roles.length > 0) {
       const initialRoles = Array(teamSize)
@@ -71,7 +65,6 @@ export const TeamBuilder = () => {
     }
   }, [teamSize, roles]);
 
-  // Extrae las categorías únicas y configura las opciones
   useEffect(() => {
     if (technologies.length > 0) {
       const uniqueCategories = Array.from(new Set(technologies.map((tech) => tech.categoryName)));
@@ -80,21 +73,17 @@ export const TeamBuilder = () => {
         label: category,
       }));
       setCategoryOptions(catOptions);
-      // No establecemos categoría por defecto para mostrar todas las tecnologías inicialmente
     }
   }, [technologies]);
 
-  // Y modificar este efecto para manejar el caso sin categoría seleccionada:
   useEffect(() => {
     if (!selectedCategory) {
-      // Mostrar todas las tecnologías cuando no hay categoría seleccionada
       const allTechs = technologies.map((tech) => ({
         value: tech.name,
         label: tech.name,
       }));
       setAvailableTechOptions(allTechs);
     } else {
-      // Mostrar solo tecnologías de la categoría seleccionada
       const techsInCategory = technologies
         .filter((tech) => tech.categoryName === selectedCategory)
         .map((tech) => ({
@@ -105,10 +94,8 @@ export const TeamBuilder = () => {
     }
   }, [selectedCategory, technologies]);
 
-  // Calcula el total de los weights
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
 
-  // Maneja el cambio de tamaño del equipo
   const handleTeamSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const size = parseInt(e.target.value, 10);
     if (!isNaN(size) && size > 0) {
@@ -127,14 +114,12 @@ export const TeamBuilder = () => {
     }
   };
 
-  // Actualiza el rol en una posición específica
   const updateRoleAtIndex = (index: number, field: 'role' | 'level', value: string) => {
     const updatedRoles = [...teamRoles];
     updatedRoles[index] = { ...updatedRoles[index], [field]: value };
     setTeamRoles(updatedRoles);
   };
 
-  // Actualiza el peso de un criterio
   const updateWeight = (id: string, value: number) => {
     const totalOtherWeights = Object.entries(weights)
       .filter(([key]) => key !== id)
@@ -160,33 +145,15 @@ export const TeamBuilder = () => {
     }
   };
 
-  // Maneja el cambio en la selección de tecnologías
   const handleTechSelectionChange = (selected: SelectOption | SelectOption[] | null) => {
     const selectedOptions = Array.isArray(selected) ? selected : selected ? [selected] : [];
-    // Extraer los nombres de las tecnologías seleccionadas
+
     const techNames = selectedOptions.map((option) => option.value.toString());
-    // Actualizar el estado de tecnologías seleccionadas
+
     setSelectedTechnologies(techNames);
-
-    console.log('Selected technologies updated:', techNames);
   };
 
-  // Maneja el cambio de categoría
-  const handleCategoryChange = (selected: SelectOption | null) => {
-    if (selected) {
-      setSelectedCategory(selected.value.toString());
-      // Al cambiar la categoría, reiniciamos las tecnologías seleccionadas
-      setSelectedTechnologies([]);
-    } else {
-      setSelectedCategory('');
-      setSelectedTechnologies([]);
-    }
-  };
-
-  // Maneja la generación de equipos
   const handleGenerateTeams = async () => {
-    console.log('Generating team with technologies:', selectedTechnologies);
-
     const creatorId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
     const params = {
       creatorId,
@@ -211,10 +178,8 @@ export const TeamBuilder = () => {
     }
   };
 
-  // El formulario es válido si el total de pesos es 100 y hay al menos una tecnología seleccionada
   const isFormValid = totalWeight === 100 && selectedTechnologies.length > 0;
 
-  // Estado de carga
   if (loadingRoles || loadingTech || loadingCriteria) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -224,7 +189,6 @@ export const TeamBuilder = () => {
     );
   }
 
-  // Mostrar resultados si el equipo fue generado
   if (showResults && generatedTeam) {
     return <TeamResultsPage teamData={generatedTeam} onBack={() => setShowResults(false)} />;
   }
@@ -240,7 +204,7 @@ export const TeamBuilder = () => {
                 <label className="mb-1 block text-sm font-medium text-gray-700">Tamaño del Equipo</label>
                 <Input type="number" min={1} value={teamSize} onChange={handleTeamSizeChange} className="w-full" />
               </div>
-              {/* Selección de Tecnologías por Categoría */}
+
               <div className="grid grid-cols-1 gap-4 md:col-span-2 md:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Categoría de Tecnología</label>
@@ -290,7 +254,7 @@ export const TeamBuilder = () => {
                   defaultValue={{ value: 3, label: 'SFIA 3 - Intermedio' }}
                 />
               </div>
-              {/* Botón para configurar criterios */}
+
               <div className="flex items-end">
                 <Button onClick={() => setShowWeightsDialog(true)} variant="secondary" className="w-full">
                   Configurar Criterios de Compatibilidad ({totalWeight}%)
@@ -354,7 +318,6 @@ export const TeamBuilder = () => {
         </div>
       </div>
 
-      {/* Diálogo para configurar criterios */}
       <Dialog open={showWeightsDialog} onOpenChange={setShowWeightsDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

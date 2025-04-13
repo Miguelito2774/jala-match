@@ -13,7 +13,7 @@ export const ProfileSectionCard = ({ title, description, completed, onClick }: P
   return (
     <div
       className={cn(
-        'rounded-lg p-4 hover:shadow-md cursor-pointer border transition-all',
+        'cursor-pointer rounded-lg border p-4 transition-all hover:shadow-md',
         completed ? 'border-secondary' : 'border-gray-200',
         completed ? 'bg-green-50' : 'bg-white',
       )}
@@ -27,7 +27,7 @@ export const ProfileSectionCard = ({ title, description, completed, onClick }: P
         {completed && <CheckCircle2 className="text-secondary h-5 w-5" />}
       </div>
       <div className="mt-3 flex items-center">
-        <div className="h-1.5 bg-gray-200 w-full rounded-full">
+        <div className="h-1.5 w-full rounded-full bg-gray-200">
           <div className="bg-secondary h-1.5 rounded-full" style={{ width: completed ? '100%' : '0%' }} />
         </div>
         <span className="ml-2 text-xs text-gray-500">{completed ? 'Completado' : '0%'}</span>

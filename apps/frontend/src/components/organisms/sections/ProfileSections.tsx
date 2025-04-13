@@ -37,7 +37,7 @@ export const ProfileSections = () => {
 
   return (
     <div className="space-y-6">
-      <div className="gap-6 md:grid-cols-2 grid grid-cols-1">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {sections.map((section) => (
           <ProfileSectionCard
             key={section.id}
@@ -51,7 +51,7 @@ export const ProfileSections = () => {
 
       {currentSection && (
         <div className="mt-8 rounded-lg bg-white p-6 shadow">
-          <div className="space-x-3 flex justify-end">
+          <div className="flex justify-end space-x-3">
             <Button variant="outline" onClick={() => setCurrentSection(null)}>
               Cancelar
             </Button>

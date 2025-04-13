@@ -32,14 +32,14 @@ export const LanguageCard = ({ language, level, onRemove, className }: LanguageC
   return (
     <div
       className={cn(
-        'rounded-lg border-gray-200 bg-white p-3 shadow-sm flex items-center justify-between border',
+        'flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
         className,
       )}
     >
       <div className="flex items-center">
         <div>
           <h4 className="font-medium text-gray-900">{language}</h4>
-          <div className={cn('mt-1 px-2 py-0.5 text-xs font-medium rounded-full', getLevelColor(level))}>{level}</div>
+          <div className={cn('mt-1 rounded-full px-2 py-0.5 text-xs font-medium', getLevelColor(level))}>{level}</div>
         </div>
       </div>
       <Button variant="ghost" size="sm" onClick={onRemove} className="text-gray-500 hover:text-red-500">

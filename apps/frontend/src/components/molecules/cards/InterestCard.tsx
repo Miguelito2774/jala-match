@@ -18,14 +18,14 @@ export const InterestCard = ({ interest, onRemove, className }: InterestCardProp
   return (
     <div
       className={cn(
-        'rounded-lg border-gray-200 bg-white p-3 shadow-sm flex items-center justify-between border',
+        'flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
         className,
       )}
     >
       <div className="flex items-center">
         <div>
           <h4 className="font-medium text-gray-900">{interest.name}</h4>
-          <div className="mt-1 gap-2 text-xs text-gray-500 flex flex-wrap">
+          <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
             <span>{interest.duration} por sesión</span>
             <span>•</span>
             <span>{interest.frequency}</span>

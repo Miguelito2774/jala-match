@@ -30,7 +30,7 @@ export const JSONUploadModal = ({ onClose, onImport, templateData, section }: JS
         const fields = Object.keys(parsed);
         setSelectedFields(fields);
       }
-    } catch (e) {
+    } catch (_e) {
       setError('JSON inválido. Por favor verifica el formato.');
     }
   };
@@ -55,9 +55,9 @@ export const JSONUploadModal = ({ onClose, onImport, templateData, section }: JS
 
   return (
     <>
-      <div className="inset-0 bg-black bg-opacity-50 p-4 fixed z-50 flex items-center justify-center"></div>
-      <div className="max-w-2xl rounded-lg bg-white p-6 shadow-xl max-h-[90vh] w-full overflow-auto">
-        <div className="border-gray-200 pb-4 flex items-center justify-between border-b">
+      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"></div>
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-6 shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
           <h2 className="text-lg font-medium text-gray-900">Importar datos desde JSON</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-5 w-5" />
@@ -93,9 +93,9 @@ export const JSONUploadModal = ({ onClose, onImport, templateData, section }: JS
           </div>
 
           {parsedData && (
-            <div className="mt-4 border-gray-200 pt-4 border-t">
+            <div className="mt-4 border-t border-gray-200 pt-4">
               <h3 className="mb-2 font-medium">Selecciona los campos a importar:</h3>
-              <div className="gap-2 grid grid-cols-2">
+              <div className="grid grid-cols-2 gap-2">
                 {Object.keys(parsedData).map((field) => (
                   <div key={field} className="flex items-center">
                     <input
@@ -112,7 +112,7 @@ export const JSONUploadModal = ({ onClose, onImport, templateData, section }: JS
                 ))}
               </div>
 
-              <div className="mt-4 space-x-2 flex justify-end">
+              <div className="mt-4 flex justify-end space-x-2">
                 <Button variant="outline" onClick={onClose}>
                   Cancelar
                 </Button>

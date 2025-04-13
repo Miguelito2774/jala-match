@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Animaciones personalizadas */
 @keyframes logo-spin {
@@ -35,8 +35,8 @@
 }
 
 :root {
-  --primary-blue: #2563EB;
+  --primary-blue: #2563eb;
   --brand-dark: #282827;
-  --brand-red: #ED2A3D;
-  --button-green: #10B981;
+  --brand-red: #ed2a3d;
+  --button-green: #10b981;
 }

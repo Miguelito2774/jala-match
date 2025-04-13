@@ -1,55 +1,90 @@
 ﻿namespace Application.DTOs;
 
-public sealed record TeamCompositionResponse(
-    List<TeamComposition> Teams);
-public sealed record TeamComposition(
-    string Name,
-    List<string> Members,
-    double TeamCompatibility,
-    Dictionary<string, double> MemberCompatibilities,
-    string Justification);
+public sealed record TeamCompatibilityRequest(
+    List<Guid> TeamMemberIds,
+    TeamMemberGenerated NewMember
+);
 
-public sealed record TeamMemberCompatibilityResponse(
-    double CompatibilityScore,
-    string Justification);
+public sealed record WeightCriteria(
+    int SfiaWeight,
+    int TechnicalWeight,
+    int PsychologicalWeight,
+    int ExperienceWeight,
+    int LanguageWeight,
+    int InterestsWeight,
+    int TimezoneWeight
+);
 
-public sealed record TeamGenerationRequest(
-    List<string> Roles,
+public sealed record TeamRoleRequest(string Role, string Level);
+
+public sealed record GenerateTeamsRequest(
+    Guid CreatorId,
+    int TeamSize,
+    List<TeamRoleRequest> Roles,
     List<string> Technologies,
     int SfiaLevel,
-    bool Availability,
-    List<TeamMemberData> MembersData,
-    Dictionary<string, int> CriteriaWeights);
-public sealed record TeamMemberData(
+    WeightCriteria Weights
+);
+
+public sealed record CreateTeamsRequest(
+    string Name,
+    Guid CreatorId,
+    List<string> RequiredTechnologies,
+    List<Guid> MemberIds
+);
+
+public sealed record TeamCompatibilityResponse(
+    double CompatibilityScore,
+    string Justification,
+    Dictionary<string, double> DimensionScores,
+    List<string> StrengthsAdded,
+    List<string> PotentialChallenges
+);
+
+public sealed record TeamMemberGenerated(
     Guid Id,
     string Name,
     string Role,
     List<string> Technologies,
     int SfiaLevel,
     string? Mbti,
-    List<string> Interests);
+    List<string> Interests,
+    string? Timezone,
+    string? Country
+);
 
-public sealed record TeamCreationRequest(
-    string Name,
-    Guid CreatorId,
-    List<string> RequiredTechnologies,
-    List<Guid> MemberIds);
-public sealed record TeamCompatibilityRequest(
-    List<Guid> TeamMemberIds,
-    TeamMemberData NewMember);
-public sealed record GenerateTeamsRequest(
-    List<string> Roles,
-    List<string> Technologies,
-    int SfiaLevel,
-    bool Availability,
-    int TechnicalWeight,
-    int PsychologicalWeight,
-    int InterestsWeight);
+public class AiTeamMemberGenerated
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Role { get; set; }
+    public int Sfia_Level { get; set; }
+}
 
-public sealed record CreateTeamsRequest(
-    string Name,
-    Guid CreatorId,
-    List<string> RequiredTechnologies,
-    List<Guid> MemberIds);
-    
-    
+public class AiTeamGenereted
+{
+    public Guid Team_Id { get; set; }
+    public List<AiTeamMemberGenerated> Members { get; set; }
+}
+
+public class AiRecommendedLeader
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Rationale { get; set; }
+}
+
+public class AiTeamAnalysis
+{
+    public List<string> Strengths { get; set; }
+    public List<string> Weaknesses { get; set; }
+    public string Compatibility { get; set; }
+}
+
+public class AiServiceResponse
+{
+    public List<AiTeamGenereted> Teams { get; set; }
+    public AiRecommendedLeader Recommended_Leader { get; set; }
+    public AiTeamAnalysis Team_Analysis { get; set; }
+    public int Compatibility_Score { get; set; }
+}

@@ -6,9 +6,10 @@ public sealed record TeamResponse(
     Guid CreatorId,
     List<string> RequiredTechnologies,
     List<TeamMemberDto> Members,
-    int? CompatibilityScore,
+    double CompatibilityScore,
     bool IsActive,
-    string AiAnalysis);
+    string AiAnalysis
+);
 
 public sealed record TeamMemberDto(
     Guid Id,
@@ -17,5 +18,5 @@ public sealed record TeamMemberDto(
     List<string> Technologies,
     int SfiaLevel,
     string? Mbti,
-    List<string> Interests);
-
+    List<string> Interests
+);

@@ -4,9 +4,11 @@ using Application.DTOs;
 namespace Application.Commands.Teams.GenerateTeams;
 
 public sealed record GenerateTeamsCommand(
-    List<string> Roles,
+    Guid CreatorId,
+    int TeamSize,
+    List<TeamRoleRequest> Roles,
     List<string> Technologies,
     int SfiaLevel,
-    bool Availability,
-    Dictionary<string, int> CriteriaWeights
-) : ICommand<TeamCompositionResponse>;
+    WeightCriteria Weights,
+    bool Availability = true
+) : ICommand<AiServiceResponse>;

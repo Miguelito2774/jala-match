@@ -9,26 +9,22 @@ internal sealed class EmployeeProfileConfiguration : EntityConfiguration<Employe
 {
     protected override void ConfigureEntity(EntityTypeBuilder<EmployeeProfile> builder)
     {
-        builder.HasOne(ep => ep.User).WithOne(u => u.EmployeeProfile)
-            
+        builder
+            .HasOne(ep => ep.User)
+            .WithOne(u => u.EmployeeProfile)
             .HasForeignKey<EmployeeProfile>(ep => ep.UserId);
-        
+
         builder.Property(ep => ep.FirstName).HasMaxLength(100).IsRequired();
-        
         builder.Property(ep => ep.LastName).HasMaxLength(100).IsRequired();
-        
-        builder.Property(ep => ep.Country).HasMaxLength(100);
-        
-        builder.Property(ep => ep.Timezone).HasMaxLength(50);
-        
-        builder.Property(ep => ep.Specialization).HasMaxLength(50);
-        
-        builder.Property(ep => ep.Mbti).HasMaxLength(4);
-        
-        builder.Property(ep => ep.WorkExperience).HasColumnType("jsonb");
-        
-        builder.Property(ep => ep.PersonalInterests).HasColumnType("jsonb");
-        
-        builder.Property(ep => ep.VerificationStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(ep => ep.Country).HasMaxLength(100).IsRequired();
+        builder.Property(ep => ep.Timezone).HasMaxLength(50).IsRequired();
+        builder.Property(ep => ep.Specialization).HasMaxLength(100).IsRequired();
+        builder.Property(ep => ep.Mbti).HasMaxLength(4).IsRequired();
+        builder.Property(ep => ep.SfiaLevelGeneral).HasPrecision(3, 1).IsRequired();
+        builder
+            .Property(ep => ep.VerificationStatus)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
     }
 }

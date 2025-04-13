@@ -2,8 +2,9 @@
 
 namespace Domain.Entities.Technologies;
 
-public sealed  class TechnologyCategory : Entity
+public sealed class TechnologyCategory : Entity
 {
-    public required string Name { get; set; } = null!;
-    public required ICollection<Technology> Technologies { get; set; } = new List<Technology>();
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public List<Technology> Technologies { get; set; } = new();
 }

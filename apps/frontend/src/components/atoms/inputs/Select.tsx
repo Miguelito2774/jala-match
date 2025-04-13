@@ -6,27 +6,51 @@ import { cn } from '@/lib/utils';
 
 import { ChevronDown, X } from 'lucide-react';
 
-interface SelectProps {
-  options: { value: any; label: string }[];
-  onChange: (selected: { value: any; label: string }) => void;
-  isMulti?: boolean;
-  defaultValue?: { value: any; label: string };
-  className?: string;
+interface SelectOption<T = any> {
+  value: T;
+  label: string;
 }
 
-export const Select = ({ options, onChange, isMulti = false, defaultValue, className }: SelectProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<{ value: any; label: string } | null>(defaultValue || null);
-  const [multiSelected, setMultiSelected] = useState<{ value: any; label: string }[]>([]);
+type SelectProps<T> = {
+  options: SelectOption<T>[];
+  onChange: (selected: SelectOption<T> | SelectOption<T>[] | null) => void;
+  isMulti?: boolean;
+  defaultValue?: SelectOption<T> | SelectOption<T>[];
+  className?: string;
+  placeholder?: string;
+  value?: SelectOption<T> | SelectOption<T>[];
+};
 
-  const handleSelect = (option: { value: any; label: string }) => {
+export const Select = <T,>({
+  options,
+  onChange,
+  isMulti = false,
+  defaultValue,
+  className,
+  placeholder,
+  value,
+}: SelectProps<T>) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState<SelectOption<T> | null>(
+    defaultValue && !Array.isArray(defaultValue) ? defaultValue : null,
+  );
+  const [multiSelected, setMultiSelected] = useState<SelectOption<T>[]>(
+    (Array.isArray(defaultValue) ? defaultValue : []) as SelectOption<T>[],
+  );
+
+  const handleSelect = (option: SelectOption<T>) => {
     if (isMulti) {
       const alreadySelected = multiSelected.some((item) => item.value === option.value);
+      let newSelected: SelectOption<T>[];
+
       if (alreadySelected) {
-        setMultiSelected(multiSelected.filter((item) => item.value !== option.value));
+        newSelected = multiSelected.filter((item) => item.value !== option.value);
       } else {
-        setMultiSelected([...multiSelected, option]);
+        newSelected = [...multiSelected, option];
       }
+
+      setMultiSelected(newSelected);
+      onChange(newSelected);
     } else {
       setSelected(option);
       onChange(option);
@@ -34,30 +58,34 @@ export const Select = ({ options, onChange, isMulti = false, defaultValue, class
     }
   };
 
+  const currentValue = isMulti ? (value as SelectOption<T>[]) || multiSelected : (value as SelectOption<T>) || selected;
+
   return (
     <div className={cn('relative', className)}>
       <div
         className={cn(
-          'rounded-md border-gray-300 p-2 flex w-full cursor-pointer items-center justify-between border',
+          'flex w-full cursor-pointer items-center justify-between rounded-md border border-gray-300 p-2',
           'focus:ring-primary focus:border-transparent focus:ring-2 focus:outline-none',
           isOpen && 'ring-primary border-transparent ring-2',
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="gap-1 flex flex-wrap">
+        <div className="flex flex-wrap gap-1">
           {isMulti ? (
-            multiSelected.length > 0 ? (
-              multiSelected.map((item) => (
+            (currentValue as SelectOption<T>[]).length > 0 ? (
+              (currentValue as SelectOption<T>[]).map((item) => (
                 <span
-                  key={item.value}
-                  className="bg-primary/10 text-primary rounded px-2 py-1 text-xs inline-flex items-center"
+                  key={`selected-${item.value}`}
+                  className="bg-primary/10 text-primary inline-flex items-center rounded px-2 py-1 text-xs"
                 >
                   {item.label}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setMultiSelected(multiSelected.filter((i) => i.value !== item.value));
+                      const newSelected = (currentValue as SelectOption<T>[]).filter((i) => i.value !== item.value);
+                      setMultiSelected(newSelected);
+                      onChange(newSelected);
                     }}
                     className="ml-1"
                   >
@@ -66,26 +94,26 @@ export const Select = ({ options, onChange, isMulti = false, defaultValue, class
                 </span>
               ))
             ) : (
-              <span className="text-gray-400">Seleccionar...</span>
+              <span className="text-gray-400">{placeholder || 'Seleccionar...'}</span>
             )
           ) : (
-            <span>{selected?.label || 'Seleccionar...'}</span>
+            <span>{(currentValue as SelectOption<T>)?.label || placeholder || 'Seleccionar...'}</span>
           )}
         </div>
         <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', isOpen && 'rotate-180 transform')} />
       </div>
 
       {isOpen && (
-        <div className="mt-1 max-h-60 rounded-md border-gray-200 bg-white py-1 shadow-lg absolute z-10 w-full overflow-auto border">
-          {options.map((option) => {
+        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+          {options.map((option, index) => {
             const isSelected = isMulti
-              ? multiSelected.some((item) => item.value === option.value)
-              : selected?.value === option.value;
+              ? (currentValue as SelectOption<T>[]).some((item) => item.value === option.value)
+              : (currentValue as SelectOption<T>)?.value === option.value;
 
             return (
               <div
-                key={option.value}
-                className={cn('px-3 py-2 hover:bg-gray-100 cursor-pointer', isSelected && 'bg-primary/10 text-primary')}
+                key={`option-${option.value ?? index}`}
+                className={cn('cursor-pointer px-3 py-2 hover:bg-gray-100', isSelected && 'bg-primary/10 text-primary')}
                 onClick={() => handleSelect(option)}
               >
                 {option.label}

@@ -1,42 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-  --color-primary-blue: #2563EB;
-  --color-primary-white: #FFFFFF;
-  --color-button-green: #10B981;
-  --color-brand-dark: #282827;
-  --color-brand-red: #ED2A3D;
-}
-
-@media (prefers-color-scheme: feSpotLight) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+/* Animaciones personalizadas */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    ),
-    rgb(var(--background-start-rgb));
+.logo-spin {
+  animation: logo-spin infinite 20s linear;
 }
 
-/* Animación fade-in para elementos que aparezcan suavemente */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .logo-spin {
+    animation: logo-spin infinite 20s linear;
+  }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+/* Efectos hover para logos */
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+:root {
+  --primary-blue: #2563EB;
+  --brand-dark: #282827;
+  --brand-red: #ED2A3D;
+  --button-green: #10B981;
 }

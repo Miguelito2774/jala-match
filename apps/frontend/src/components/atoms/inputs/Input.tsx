@@ -10,10 +10,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, label, error, ...props }, ref) => {
   return (
     <div className="space-y-1">
-      {label && <label className="text-sm font-medium text-gray-700 block">{label}</label>}
+      {label && <label className="block text-sm font-medium text-gray-700">{label}</label>}
       <input
         className={cn(
-          'h-10 rounded-md border-gray-300 px-3 py-2 text-sm flex w-full border',
+          'flex h-10 w-full rounded-md border border-gray-300 px-3 py-2 text-sm',
           'focus:ring-primary focus:border-transparent focus:ring-2 focus:outline-none',
           error && 'border-danger focus:ring-danger',
           className,

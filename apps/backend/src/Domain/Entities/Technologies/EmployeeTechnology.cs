@@ -1,14 +1,19 @@
-﻿using Domain.Entities.Profiles;
+﻿using Domain.Entities.Enums;
+using Domain.Entities.Profiles;
 using SharedKernel.Domain;
 
 namespace Domain.Entities.Technologies;
 
-public sealed class EmployeeTechnology : Entity
+public class EmployeeTechnology : Entity
 {
     public required Guid EmployeeProfileId { get; set; }
-    public required EmployeeProfile EmployeeProfile { get; set; } = null!;
     public required Guid TechnologyId { get; set; }
-    public required Technology Technology { get; set; } = null!;
-    public required int SfiaLevel { get; set; }
+    public required int SfiaLevel { get; set; } // 1-7
     public required decimal YearsExperience { get; set; }
+    public required string Version { get; set; }
+    public required ExperienceLevel ExperienceLevel { get; set; }
+
+    // Navigation
+    public required EmployeeProfile EmployeeProfile { get; set; }
+    public required Technology Technology { get; set; }
 }

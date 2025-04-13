@@ -1,11 +1,24 @@
 ﻿using Application.DTOs;
-using Application.Queries.Teams.GetTeamCompatibility;
 using SharedKernel.Results;
 
 namespace Application.Abstractions.Services;
 
 public interface ITeamService
 {
-    Task<Result<TeamCompositionResponse>> GenerateTeams(TeamGenerationRequest request);
-    Task<Result<TeamCompatibilityResponse>> CalculateCompatibility(TeamCompatibilityRequest request);
+    Task<Result<AiServiceResponse>> GenerateTeams(
+        List<TeamRoleRequest> roles,
+        List<string> technologies,
+        int sfiaLevel,
+        int teamSize,
+        List<TeamMemberGenerated> membersData,
+        WeightCriteria weights,
+        CancellationToken cancellationToken
+    );
+
+    Task<Result<TeamCompatibilityResponse>> CalculateCompatibility(
+        List<TeamMemberGenerated> teamMembers,
+        TeamMemberGenerated newMember,
+        List<string> requiredTechnologies,
+        CancellationToken cancellationToken
+    );
 }

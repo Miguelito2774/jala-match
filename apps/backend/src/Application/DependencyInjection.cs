@@ -15,8 +15,11 @@ public static class DependencyInjection
             config.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
         });
 
-        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, includeInternalTypes: true);
-    
+        services.AddValidatorsFromAssembly(
+            typeof(DependencyInjection).Assembly,
+            includeInternalTypes: true
+        );
+
         return services;
     }
 }

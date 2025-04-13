@@ -9,8 +9,28 @@ internal sealed class GenerateTeamsCommandValidator : AbstractValidator<Generate
         RuleFor(x => x.Roles).NotEmpty();
         RuleFor(x => x.Technologies).NotEmpty();
         RuleFor(x => x.SfiaLevel).InclusiveBetween(1, 7);
-        RuleFor(x => x.CriteriaWeights).NotEmpty();
-        RuleFor(x => x.CriteriaWeights["technical"] + x.CriteriaWeights["psychological"] + x.CriteriaWeights["interests"])
-            .Equal(100).WithMessage("The sum of weights must be 100");
+        RuleFor(x => x.TeamSize).GreaterThan(0);
+        RuleFor(x => x.Weights).NotNull();
+        RuleFor(x => x.Weights.SfiaWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.TechnicalWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.PsychologicalWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.ExperienceWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.LanguageWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.InterestsWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights.TimezoneWeight).InclusiveBetween(0, 100);
+        RuleFor(x => x.Weights)
+            .Must(weights =>
+            {
+                int totalWeight =
+                    weights.SfiaWeight
+                    + weights.TechnicalWeight
+                    + weights.PsychologicalWeight
+                    + weights.ExperienceWeight
+                    + weights.LanguageWeight
+                    + weights.InterestsWeight
+                    + weights.TimezoneWeight;
+                return totalWeight == 100;
+            })
+            .WithMessage("Total weight must equal 100%.");
     }
 }

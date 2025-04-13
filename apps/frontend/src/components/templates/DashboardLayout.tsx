@@ -1,3 +1,5 @@
+'use client';
+
 import { Header } from '@/components/organisms/header/Header';
 import { Sidebar } from '@/components/organisms/sidebar/Sidebar';
 
@@ -9,12 +11,12 @@ export const DashboardLayout = ({
   role?: 'employee' | 'manager' | 'admin';
 }) => {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <Sidebar role={role} />
-      <div className="md:pl-64 flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col md:pl-64">
         <Header />
-        <main className="pb-8 flex-1">
-          <div className="max-w-7xl px-4 py-6 sm:px-6 lg:px-8 mx-auto">{children}</div>
+        <main className="flex-1 pb-8">
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
     </div>

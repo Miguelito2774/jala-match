@@ -28,7 +28,16 @@ interface TeamMember {
   id: string;
   name: string;
   role: string;
-  sfia_level: number;
+  sfia_Level: number;
+}
+
+interface RecommendedMember {
+  id: string;
+  name: string;
+  compatibility_Score: number;
+  analysis: string;
+  potential_Conflicts: string[];
+  team_Impact: string;
 }
 
 interface GeneratedTeamResponse {
@@ -47,6 +56,7 @@ interface GeneratedTeamResponse {
     compatibility: string;
   };
   compatibility_Score: number;
+  recommended_members: RecommendedMember[];
 }
 
 export const useTeamGenerator = () => {

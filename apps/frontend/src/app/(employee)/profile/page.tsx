@@ -10,6 +10,7 @@ export default function ProfilePage() {
           <p className="mt-1 text-sm text-gray-500">Completa tu perfil para ser considerado en los equipos</p>
         </div>
 
+        {/* Profile sections component */}
         <ProfileSections />
       </div>
     </DashboardLayout>

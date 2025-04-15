@@ -16,7 +16,7 @@ export const ROUTES = {
     TEAMS: '/employee/teams',
   },
   MANAGER: {
-    TEAM_BUILDER: '/manager/team-builder',
+    TEAM_BUILDER: '/team-builder',
     TEAM_GENERATED: '/manager/team-generated',
   },
   ADMIN: {

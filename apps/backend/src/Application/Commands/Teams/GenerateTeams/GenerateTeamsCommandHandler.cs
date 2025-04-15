@@ -72,7 +72,11 @@ internal sealed class GenerateTeamsCommandHandler
                 membersData.Add(memberData);
             }
 
-            var eligibleMembers = membersData.Where(m => m.SfiaLevel >= command.SfiaLevel).ToList();
+            var eligibleMembers = membersData
+                .OrderByDescending(m => m.SfiaLevel)
+                .ThenBy(m => Guid.NewGuid())
+                .ToList();
+
             if (!eligibleMembers.Any())
             {
                 return Result.Failure<AiServiceResponse>(

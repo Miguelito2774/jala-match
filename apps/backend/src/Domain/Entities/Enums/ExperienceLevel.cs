@@ -3,8 +3,6 @@ namespace Domain.Entities.Enums;
 public enum ExperienceLevel
 {
     Junior,
-    Mid,
+    Staff,
     Senior,
-    Lead,
-    Architect,
 }

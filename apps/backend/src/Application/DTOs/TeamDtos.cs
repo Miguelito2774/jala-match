@@ -87,4 +87,23 @@ public class AiServiceResponse
     public AiRecommendedLeader Recommended_Leader { get; set; }
     public AiTeamAnalysis Team_Analysis { get; set; }
     public int Compatibility_Score { get; set; }
+
+    public List<AiRecommendedMember> recommended_members { get; set; }
+}
+
+public class AiRecommendedMember
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public int Compatibility_Score { get; set; }
+    public string Analysis { get; set; }
+    public List<string> Potential_Conflicts { get; set; }
+    public string Team_Impact { get; set; }
+}
+
+public class ReanalyzeTeamRequest
+{
+    public Guid TeamId { get; set; }
+    public List<Guid> MemberIds { get; set; }
+    public Guid LeaderId { get; set; }
 }

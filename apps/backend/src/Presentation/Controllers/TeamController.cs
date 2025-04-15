@@ -1,5 +1,6 @@
 ﻿using Application.Commands.Teams.Create;
 using Application.Commands.Teams.GenerateTeams;
+using Application.Commands.Teams.Reanalyze;
 using Application.DTOs;
 using Application.Queries.Teams.GetTeamCompatibility;
 using MediatR;
@@ -155,5 +156,15 @@ public sealed class TeamsController : ControllerBase
         };
 
         return Task.FromResult(Results.Ok(criteria));
+    }
+
+    [HttpPost("reanalyze")]
+    public async Task<IResult> ReanalyzeTeam([FromBody] ReanalyzeTeamRequest request)
+    {
+        var command = new ReanalyzeTeamCommand(request.TeamId, request.MemberIds, request.LeaderId);
+
+        Result<AiServiceResponse> result = await _sender.Send(command);
+
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 }

@@ -21,4 +21,16 @@ public interface ITeamService
         List<string> requiredTechnologies,
         CancellationToken cancellationToken
     );
+
+    Task<Result<AiServiceResponse>> ReanalyzeTeam(
+        Guid teamId,
+        List<TeamRoleRequest> roles,
+        List<string> technologies,
+        int sfiaLevel,
+        int teamSize,
+        List<TeamMemberGenerated> membersData,
+        Guid leaderId,
+        WeightCriteria weights,
+        CancellationToken cancellationToken
+    );
 }

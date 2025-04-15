@@ -60,57 +60,118 @@ public class TeamService : ITeamService
                 availability = true,
             };
 
+            string requestJson = JsonSerializer.Serialize(request, _jsonOptions);
             _logger.LogInformation(
-                "Request payload: {RequestPayload}",
-                JsonSerializer.Serialize(request, _jsonOptions)
+                "Request payload for team generation: {RequestPayload}",
+                requestJson
             );
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(request, _jsonOptions),
-                Encoding.UTF8,
-                "application/json"
-            );
-
-            _logger.LogDebug("Members data count: {Count}", membersData.Count);
-            _logger.LogDebug(
-                "First member (if any): {Member}",
-                membersData.Count > 0 ? JsonSerializer.Serialize(membersData[0]) : "None"
-            );
+            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
             _logger.LogInformation("Sending request to AI Service for team generation");
 
-            _logger.LogDebug("Request content: {Content}", JsonSerializer.Serialize(request));
-
-            HttpResponseMessage response = await _httpClient.PostAsync(
-                "/generate-teams",
-                content,
-                cancellationToken
-            );
-            response.EnsureSuccessStatusCode();
+            HttpResponseMessage response;
+            try
+            {
+                response = await _httpClient.PostAsync(
+                    "/generate-teams",
+                    content,
+                    cancellationToken
+                );
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(
+                    httpEx,
+                    "HTTP request failed while calling AI Service: {Message}",
+                    httpEx.Message
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.Generation.HttpRequestFailed",
+                        $"Failed to connect to AI Service: {httpEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
 
             string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogInformation(
+                "Received response from AI Service with status code {StatusCode}",
+                response.StatusCode
+            );
             _logger.LogDebug("Response content: {Content}", responseContent);
-            _logger.LogInformation("Received response from AI Service");
 
-            AiServiceResponse aiResponse =
-                JsonSerializer.Deserialize<AiServiceResponse>(responseContent, _jsonOptions)
-                ?? new AiServiceResponse
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "AI Service returned error: {StatusCode} - {Content}",
+                    response.StatusCode,
+                    responseContent
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.Generation.Failed",
+                        $"AI Service responded with {response.StatusCode}: {responseContent}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+
+            try
+            {
+                AiServiceResponse aiResponse = JsonSerializer.Deserialize<AiServiceResponse>(
+                    responseContent,
+                    _jsonOptions
+                );
+
+                if (aiResponse == null)
                 {
-                    Teams = new List<AiTeamGenereted>(),
-                    Recommended_Leader = new AiRecommendedLeader(),
-                    Team_Analysis = new AiTeamAnalysis(),
-                    Compatibility_Score = 0,
-                };
+                    _logger.LogWarning("Failed to deserialize AI Service response");
+                    return Result.Failure<AiServiceResponse>(
+                        new Error(
+                            "Teams.Generation.DeserializationFailed",
+                            "Failed to deserialize response from AI Service",
+                            ErrorType.Failure
+                        )
+                    );
+                }
 
-            return aiResponse;
+                return aiResponse;
+            }
+            catch (JsonException jsonEx)
+            {
+                _logger.LogError(
+                    jsonEx,
+                    "Failed to deserialize response: {Message}",
+                    jsonEx.Message
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.Generation.DeserializationFailed",
+                        $"Failed to parse AI Service response: {jsonEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result.Failure<AiServiceResponse>(
+                new Error(
+                    "Teams.Generation.Canceled",
+                    "The operation was canceled",
+                    ErrorType.Failure
+                )
+            );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to generate teams using AI Service");
+            _logger.LogError(ex, "Unexpected error while generating teams: {Message}", ex.Message);
             return Result.Failure<AiServiceResponse>(
                 new Error(
                     "Teams.Generation.Failed",
-                    $"AI Service error: {ex.Message}",
+                    $"Unexpected exception: {ex.Message}",
                     ErrorType.Failure
                 )
             );
@@ -167,6 +228,90 @@ public class TeamService : ITeamService
             return Result.Failure<TeamCompatibilityResponse>(
                 new Error(
                     "Teams.Generation.Failed",
+                    $"AI Service error: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    public async Task<Result<AiServiceResponse>> ReanalyzeTeam(
+        Guid teamId,
+        List<TeamRoleRequest> roles,
+        List<string> technologies,
+        int sfiaLevel,
+        int teamSize,
+        List<TeamMemberGenerated> membersData,
+        Guid leaderId,
+        WeightCriteria weights,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var roleStrings = roles.Select(r => r.Role).ToList();
+
+            var request = new
+            {
+                team_id = teamId,
+                roles = roleStrings,
+                technologies,
+                sfia_level = sfiaLevel,
+                team_size = teamSize,
+                members_data = membersData,
+                leader_id = leaderId,
+                technical_weight = weights.TechnicalWeight,
+                psychological_weight = weights.PsychologicalWeight,
+                interests_weight = weights.InterestsWeight,
+                sfia_weight = weights.SfiaWeight,
+                experience_weight = weights.ExperienceWeight,
+                language_weight = weights.LanguageWeight,
+                timezone_weight = weights.TimezoneWeight,
+                availability = true,
+            };
+
+            _logger.LogInformation(
+                "Request payload for reanalysis: {RequestPayload}",
+                JsonSerializer.Serialize(request, _jsonOptions)
+            );
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(request, _jsonOptions),
+                Encoding.UTF8,
+                "application/json"
+            );
+
+            _logger.LogInformation("Sending request to AI Service for team reanalysis");
+
+            HttpResponseMessage response = await _httpClient.PostAsync(
+                "/reanalyze-team",
+                content,
+                cancellationToken
+            );
+            response.EnsureSuccessStatusCode();
+
+            string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogDebug("Response content: {Content}", responseContent);
+            _logger.LogInformation("Received response from AI Service");
+
+            AiServiceResponse aiResponse =
+                JsonSerializer.Deserialize<AiServiceResponse>(responseContent, _jsonOptions)
+                ?? new AiServiceResponse
+                {
+                    Teams = new List<AiTeamGenereted>(),
+                    Recommended_Leader = new AiRecommendedLeader(),
+                    Team_Analysis = new AiTeamAnalysis(),
+                    Compatibility_Score = 0,
+                };
+
+            return aiResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reanalyze team using AI Service");
+            return Result.Failure<AiServiceResponse>(
+                new Error(
+                    "Teams.Reanalysis.Failed",
                     $"AI Service error: {ex.Message}",
                     ErrorType.Failure
                 )

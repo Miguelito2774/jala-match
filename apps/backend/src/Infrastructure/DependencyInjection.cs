@@ -45,7 +45,7 @@ public static class DependencyInjection
             client =>
             {
                 client.BaseAddress = new Uri(configuration["AIService:BaseUrl"]!);
-                client.Timeout = TimeSpan.FromSeconds(60);
+                client.Timeout = TimeSpan.FromMinutes(5);
             }
         );
 

@@ -61,10 +61,8 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
   const [showRecommendedMembers, setShowRecommendedMembers] = useState(false);
   const [showLeaderRationale, setShowLeaderRationale] = useState<string | null>(null);
 
-  // Track used recommended members to prevent duplicates
   const [usedRecommendedMembers, setUsedRecommendedMembers] = useState<string[]>([]);
 
-  // Estado para rastrear razones de liderazgo personalizadas
   const [leaderRationales, setLeaderRationales] = useState<Record<string, string>>({
     [teamData.recommended_Leader.id]: teamData.recommended_Leader.rationale,
   });
@@ -72,18 +70,15 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
   const analysis = currentTeamData.team_Analysis;
   const score = currentTeamData.compatibility_Score;
 
-  // Estado para mantener un registro de los miembros originales para posibles restauraciones
   const [originalMembers] = useState(teamData.teams[0].members);
   const [originalLeader] = useState(teamData.recommended_Leader.id);
 
   const isLeader = (memberId: string) => memberId === currentLeader;
 
-  // Obtener la razón para el líder actual
   const getCurrentLeaderRationale = () => {
     return leaderRationales[currentLeader] || 'Seleccionado manualmente como líder del equipo.';
   };
 
-  // Mostrar u ocultar el razonamiento del líder (para mobile)
   const toggleLeaderRationale = (memberId: string) => {
     if (showLeaderRationale === memberId) {
       setShowLeaderRationale(null);
@@ -92,9 +87,7 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
     }
   };
 
-  // Manejar el cambio de líder
   const handleLeaderChange = (memberId: string) => {
-    // Si no hay una razón existente para este miembro, añadir una genérica
     if (!leaderRationales[memberId]) {
       const member = currentTeamMembers.find((m) => m.id === memberId);
       setLeaderRationales({
@@ -105,16 +98,11 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
     setCurrentLeader(memberId);
   };
 
-  // Mostrar detalles del miembro recomendado
-
-  // Intercambiar miembro actual con miembro recomendado
   const handleSwapMember = (currentMemberId: string, recommendedMemberId: string) => {
-    // Encuentra el miembro recomendado por su ID
     const recommendedMember = currentTeamData.recommended_members.find((member) => member.id === recommendedMemberId);
 
     if (!recommendedMember) return;
 
-    // Crear un nuevo objeto de miembro de equipo a partir del miembro recomendado
     const newTeamMember: TeamMember = {
       id: recommendedMember.id,
       name: recommendedMember.name,
@@ -122,10 +110,7 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
       sfia_Level: Math.floor(Math.random() * 3) + 3,
     };
 
-    // Actualizar la lista de miembros del equipo
     const updatedMembers = currentTeamMembers.map((member) => (member.id === currentMemberId ? newTeamMember : member));
-
-    // Track this recommended member as used
     setUsedRecommendedMembers([...usedRecommendedMembers, recommendedMemberId]);
 
     setCurrentTeamMembers(updatedMembers);
@@ -133,15 +118,13 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
     setShowRecommendedMembers(false);
   };
 
-  // Restaurar el equipo original
   const handleRestoreOriginal = () => {
     setCurrentLeader(originalLeader);
     setCurrentTeamMembers(originalMembers);
     setCurrentTeamData(teamData);
-    setUsedRecommendedMembers([]); // Reset used recommended members
+    setUsedRecommendedMembers([]);
   };
 
-  // Filter recommended members to remove already used ones
   const filteredRecommendedMembers = currentTeamData.recommended_members.filter(
     (member) => !usedRecommendedMembers.includes(member.id),
   );
@@ -407,7 +390,6 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal para detalles de miembro */}
       <Dialog open={!!showMemberDetails} onOpenChange={() => setShowMemberDetails(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

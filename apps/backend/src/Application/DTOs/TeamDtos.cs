@@ -1,9 +1,8 @@
-﻿namespace Application.DTOs;
+﻿using System.Text.Json.Serialization;
+using Domain.Entities.Enums;
+using Domain.Entities.Technologies;
 
-public sealed record TeamCompatibilityRequest(
-    List<Guid> TeamMemberIds,
-    TeamMemberGenerated NewMember
-);
+namespace Application.DTOs;
 
 public sealed record WeightCriteria(
     int SfiaWeight,
@@ -20,7 +19,7 @@ public sealed record TeamRoleRequest(string Role, string Level);
 public sealed record GenerateTeamsRequest(
     Guid CreatorId,
     int TeamSize,
-    List<TeamRoleRequest> Roles,
+    List<TeamRequirements> Requirements,
     List<string> Technologies,
     int SfiaLevel,
     WeightCriteria Weights
@@ -31,14 +30,6 @@ public sealed record CreateTeamsRequest(
     Guid CreatorId,
     List<string> RequiredTechnologies,
     List<Guid> MemberIds
-);
-
-public sealed record TeamCompatibilityResponse(
-    double CompatibilityScore,
-    string Justification,
-    Dictionary<string, double> DimensionScores,
-    List<string> StrengthsAdded,
-    List<string> PotentialChallenges
 );
 
 public sealed record TeamMemberGenerated(
@@ -107,3 +98,11 @@ public class ReanalyzeTeamRequest
     public List<Guid> MemberIds { get; set; }
     public Guid LeaderId { get; set; }
 }
+
+public record TeamRequirements(
+    string Role,
+    string Area,
+    
+    [property: JsonConverter(typeof(JsonStringEnumConverter))]
+    ExperienceLevel Level
+);

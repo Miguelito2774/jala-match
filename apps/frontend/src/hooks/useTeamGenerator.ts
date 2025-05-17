@@ -1,27 +1,24 @@
 import { useState } from 'react';
 
-interface Role {
-  role: string;
-  level: string;
-}
-
-interface Weights {
-  sfiaWeight: number;
-  technicalWeight: number;
-  psychologicalWeight: number;
-  experienceWeight: number;
-  languageWeight: number;
-  interestsWeight: number;
-  timezoneWeight: number;
-}
-
 interface TeamGeneratorParams {
-  creatorId: string;
-  teamSize: number;
-  roles: Role[];
-  technologies: string[];
-  sfiaLevel: number;
-  weights: Weights;
+  CreatorId: string;
+  TeamSize: number;
+  Requirements: {
+    Role: string;
+    Area: string;
+    Level: string;
+  }[];
+  Technologies: string[];
+  SfiaLevel: number;
+  Weights: {
+    SfiaWeight: number;
+    TechnicalWeight: number;
+    PsychologicalWeight: number;
+    ExperienceWeight: number;
+    LanguageWeight: number;
+    InterestsWeight: number;
+    TimezoneWeight: number;
+  };
 }
 
 interface TeamMember {

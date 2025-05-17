@@ -37,12 +37,12 @@ class TeamMemberData(BaseModel):
         populate_by_name = True
         allow_population_by_field_name = True
 
-class RoleSpec(BaseModel):
-    role: str = Field(alias="Role")
-    level: str = Field(alias="Level")
+class TechnicalRoleSpec(BaseModel):
+    role: str = Field(..., alias="Role")  
+    area: str = Field(..., alias="Area")  
+    level: str = Field(..., alias="Level") 
 
     class Config:
-        populate_by_name = True
         allow_population_by_field_name = True
 
 class WeightsModel(BaseModel):
@@ -61,7 +61,7 @@ class WeightsModel(BaseModel):
 class TeamGenerationRequest(BaseModel):
     creator_id: str = Field(alias="CreatorId")
     team_size: int = Field(alias="TeamSize")
-    roles: List[RoleSpec] = Field(alias="Roles")
+    requirements: List[TechnicalRoleSpec] = Field(..., alias="Requirements")
     technologies: List[str] = Field(alias="Technologies")
     sfia_level: int = Field(alias="SfiaLevel")
     weights: WeightsModel = Field(alias="Weights")
@@ -104,7 +104,7 @@ async def generate_teams(request: TeamGenerationRequest):
     try:
         print("Received request:", request.dict())
         
-        roles_list = [role.role for role in request.roles]
+        roles_list = [req.role for req in request.requirements]
         
         members_query = f"""
         De mi base de datos necesito obtener empleados que cumplan estos criterios:
@@ -120,9 +120,12 @@ async def generate_teams(request: TeamGenerationRequest):
         - Los idiomas están en employee_language
         - Los intereses están en personal_interests
         - La experiencia laboral está en work_experience
+        - employee_profiles -> employee_specialized_roles (roles y niveles)
+        - employee_specialized_roles -> specialized_roles -> technical_areas (área técnica)
+        - employee_technologies -> technologies (skills técnicos)
         
         Por favor:
-        - Trae al menos 20 empleados que mejor cumplan los criterios
+        - Trae al menos 10 empleados que mejor cumplan los criterios
         - Cada empleado debe tener: id, name, role, technologies (array), sfia_level, mbti, interests (array), timezone y country
         - Si un empleado cumple con al menos una tecnología solicitada, inclúyelo
         - Prioriza empleados con mayor número de tecnologías coincidentes
@@ -150,7 +153,8 @@ async def generate_teams(request: TeamGenerationRequest):
 
         ## Requisitos del Equipo
         - Tamaño del equipo: {request.team_size}
-        - Roles requeridos: {[role.role for role in request.roles]}
+-        - Roles requeridos: {[role.role for role in request.requirements]}
++        - Areas requeridas: {[req.area for req in request.requirements]}
         - Tecnologías requeridas: {request.technologies}
         - Nivel SFIA mínimo: {request.sfia_level}
 

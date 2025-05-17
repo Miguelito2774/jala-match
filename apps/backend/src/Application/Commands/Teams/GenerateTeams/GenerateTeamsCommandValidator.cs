@@ -6,8 +6,7 @@ internal sealed class GenerateTeamsCommandValidator : AbstractValidator<Generate
 {
     public GenerateTeamsCommandValidator()
     {
-        RuleFor(x => x.Roles).NotEmpty();
-        RuleFor(x => x.Technologies).NotEmpty();
+        RuleFor(x => x.Requirements).NotEmpty();
         RuleFor(x => x.SfiaLevel).InclusiveBetween(1, 7);
         RuleFor(x => x.TeamSize).GreaterThan(0);
         RuleFor(x => x.Weights).NotNull();

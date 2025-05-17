@@ -15,7 +15,47 @@ namespace Presentation.Controllers;
 public sealed class TeamsController : ControllerBase
 {
     private readonly ISender _sender;
-    private static readonly string[] item = new[] { "Junior", "Staff", "Senior" };
+    private static readonly string[] item = new[] { "Junior", "Staff", "Senior", "Architect" };
+    private static readonly string[] itemArray = new[] 
+                {
+                    "Web Development",
+                    "Mobile Development",
+                    "Backend Development",
+                    "Frontend Development",
+                    "DevOps & Infrastructure"
+                };
+    private static readonly string[] itemArray0 = new[]
+                {
+                    "Test Automation",
+                    "Performance Testing",
+                    "Security Testing",
+                    "Scripting"
+                };
+    private static readonly string[] itemArray1 = new[]
+                {
+                    "Functional Testing",
+                    "Exploratory Testing",
+                    "Regression Testing"
+                };
+    private static readonly string[] itemArray2 = new[]
+                {
+                    "User Research",
+                    "Wireframing",
+                    "Visual Design",
+                    "Interaction Design"
+                };
+    private static readonly string[] itemArray3 = new[]
+                {
+                    "Data Pipelines",
+                    "ETL",
+                    "Big Data"
+                };
+    private static readonly string[] itemArray4 = new[]
+                {
+                    "Machine Learning",
+                    "Data Analysis",
+                    "AI/ML Operations"
+                };
 
     public TeamsController(ISender sender)
     {
@@ -28,9 +68,9 @@ public sealed class TeamsController : ControllerBase
         var command = new GenerateTeamsCommand(
             request.CreatorId,
             request.TeamSize,
-            request.Roles,
-            request.Technologies,
+            request.Requirements,
             request.SfiaLevel,
+            request.Technologies,
             request.Weights
         );
 
@@ -61,12 +101,47 @@ public sealed class TeamsController : ControllerBase
     {
         var roles = new List<object>
         {
-            new { Role = "Developer", Levels = item },
-            new { Role = "QA", Levels = item },
+            new 
+            {
+                Role = "Developer",
+                Areas = itemArray,
+                Levels = item
+            },
+            new 
+            {
+                Role = "QA Automation",
+                Areas = itemArray0,
+                Levels = item
+            },
+            new 
+            {
+                Role = "QA Manual",
+                Areas = itemArray1,
+                Levels = item
+            },
+            new 
+            {
+                Role = "UX/UI Designer",
+                Areas = itemArray2,
+                Levels = item
+            },
+            new 
+            {
+                Role = "Data Engineer",
+                Areas = itemArray3,
+                Levels = item
+            },
+            new 
+            {
+                Role = "Data Scientist",
+                Areas = itemArray4,
+                Levels = item
+            }
         };
 
         return Task.FromResult(Results.Ok(roles));
     }
+
 
     [HttpGet("weight-criteria")]
     public Task<IResult> GetWeightCriteria()

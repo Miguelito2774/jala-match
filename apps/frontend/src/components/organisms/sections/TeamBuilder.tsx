@@ -29,7 +29,7 @@ export const TeamBuilder = () => {
   const { generateTeam, loading: generatingTeam, generatedTeam } = useTeamGenerator();
 
   const [teamSize, setTeamSize] = useState<number>(3);
-  const [teamRoles, setTeamRoles] = useState<{ role: string; level: string }[]>([]);
+  const [teamRoles, setTeamRoles] = useState<{ role: string; area: string; level: string }[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [sfiaLevel, setSfiaLevel] = useState<number>(3);
   const [weights, setWeights] = useState<Record<string, number>>({});
@@ -59,6 +59,7 @@ export const TeamBuilder = () => {
         .fill(null)
         .map(() => ({
           role: roles[0]?.role || '',
+          area: roles[0]?.areas?.[0] || '',
           level: roles[0]?.levels?.[0] || '',
         }));
       setTeamRoles(initialRoles);
@@ -105,7 +106,7 @@ export const TeamBuilder = () => {
         const defaultLevel = roles.length > 0 ? roles[0]?.levels?.[0] || '' : '';
         const newRoles = [...teamRoles];
         for (let i = teamRoles.length; i < size; i++) {
-          newRoles.push({ role: defaultRole, level: defaultLevel });
+          newRoles.push({ role: defaultRole, area: '', level: defaultLevel });
         }
         setTeamRoles(newRoles);
       } else {
@@ -114,7 +115,7 @@ export const TeamBuilder = () => {
     }
   };
 
-  const updateRoleAtIndex = (index: number, field: 'role' | 'level', value: string) => {
+  const updateRoleAtIndex = (index: number, field: 'role' | 'area' | 'level', value: string) => {
     const updatedRoles = [...teamRoles];
     updatedRoles[index] = { ...updatedRoles[index], [field]: value };
     setTeamRoles(updatedRoles);
@@ -156,19 +157,23 @@ export const TeamBuilder = () => {
   const handleGenerateTeams = async () => {
     const creatorId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
     const params = {
-      creatorId,
-      teamSize,
-      roles: teamRoles,
-      technologies: selectedTechnologies,
-      sfiaLevel,
-      weights: {
-        sfiaWeight: weights.sfiaWeight || 0,
-        technicalWeight: weights.technicalWeight || 0,
-        psychologicalWeight: weights.psychologicalWeight || 0,
-        experienceWeight: weights.experienceWeight || 0,
-        languageWeight: weights.languageWeight || 0,
-        interestsWeight: weights.interestsWeight || 0,
-        timezoneWeight: weights.timezoneWeight || 0,
+      CreatorId: creatorId,
+      TeamSize: teamSize,
+      Requirements: teamRoles.map(({ role, area, level }) => ({
+        Role: role,
+        Area: area,
+        Level: level,
+      })),
+      Technologies: selectedTechnologies,
+      SfiaLevel: sfiaLevel,
+      Weights: {
+        SfiaWeight: weights.sfiaWeight || 0,
+        TechnicalWeight: weights.technicalWeight || 0,
+        PsychologicalWeight: weights.psychologicalWeight || 0,
+        ExperienceWeight: weights.experienceWeight || 0,
+        LanguageWeight: weights.languageWeight || 0,
+        InterestsWeight: weights.interestsWeight || 0,
+        TimezoneWeight: weights.timezoneWeight || 0,
       },
     };
 
@@ -265,40 +270,61 @@ export const TeamBuilder = () => {
           <div className="border-t border-gray-200 pt-6">
             <h2 className="mb-4 text-lg font-medium text-gray-900">Roles y Niveles Requeridos</h2>
             <div className="space-y-4">
-              {teamRoles.map((roleObj, index) => (
-                <div key={index} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <Select
-                      options={roles.map((r) => ({ value: r.role, label: r.role }))}
-                      onChange={(selected) => {
-                        if (selected && !Array.isArray(selected)) {
-                          updateRoleAtIndex(index, 'role', selected.value.toString());
-                        }
-                      }}
-                      defaultValue={{ value: roleObj.role, label: roleObj.role }}
-                    />
+              {teamRoles.map((roleObj, index) => {
+                const roleOptions = roles.map((r) => ({ value: r.role, label: r.role }));
+                const selectedRole = roles.find((r) => r.role === roleObj.role);
+                const areaOptions = selectedRole?.areas?.map((a) => ({ value: a, label: a })) || [];
+                const levelOptions = selectedRole?.levels?.map((l) => ({ value: l, label: l })) || [];
+
+                return (
+                  <div
+                    key={index}
+                    className={`grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4 ${index < teamRoles.length - 1 ? 'mb-4 border-b border-gray-200 pb-4' : ''}`}
+                  >
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 md:hidden">Rol</label>
+                      <Select
+                        options={roleOptions}
+                        value={roleOptions.find((opt) => opt.value === roleObj.role)}
+                        onChange={(selected) => {
+                          if (selected && !Array.isArray(selected)) {
+                            updateRoleAtIndex(index, 'role', selected.value.toString());
+                          }
+                        }}
+                        placeholder="Seleccionar rol..."
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 md:hidden">Área</label>
+                      <Select
+                        options={areaOptions}
+                        value={areaOptions.find((opt) => opt.value === roleObj.area)}
+                        onChange={(selected) => {
+                          if (selected && !Array.isArray(selected)) {
+                            updateRoleAtIndex(index, 'area', selected.value.toString());
+                          }
+                        }}
+                        placeholder="Seleccionar área..."
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500 md:hidden">Nivel</label>
+                      <Select
+                        options={levelOptions}
+                        value={levelOptions.find((opt) => opt.value === roleObj.level)}
+                        onChange={(selected) => {
+                          if (selected && !Array.isArray(selected)) {
+                            updateRoleAtIndex(index, 'level', selected.value.toString());
+                          }
+                        }}
+                        placeholder="Seleccionar nivel..."
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Select
-                      options={
-                        roles
-                          .find((r) => r.role === roleObj.role)
-                          ?.levels.map((level) => ({
-                            value: level,
-                            label: level,
-                          })) || []
-                      }
-                      onChange={(selected) => {
-                        if (selected && !Array.isArray(selected)) {
-                          updateRoleAtIndex(index, 'level', selected.value.toString());
-                        }
-                      }}
-                      defaultValue={{ value: roleObj.level, label: roleObj.level }}
-                      placeholder="Seleccionar nivel..."
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           <Button

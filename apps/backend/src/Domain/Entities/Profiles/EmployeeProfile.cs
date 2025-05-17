@@ -1,4 +1,5 @@
-﻿using Domain.Entities.Enums;
+﻿using Domain.Entities.Areas_Roles;
+using Domain.Entities.Enums;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
 using Domain.Entities.Users;
@@ -28,4 +29,6 @@ public class EmployeeProfile : Entity
     public List<EmployeeLanguage> Languages { get; set; } = new();
     public List<TeamMember> TeamMemberships { get; set; } = new();
     public List<ProfileVerification> Verifications { get; set; } = new();
+    public List<EmployeeSpecializedRole> SpecializedRoles { get; set; } = new();
+
 }

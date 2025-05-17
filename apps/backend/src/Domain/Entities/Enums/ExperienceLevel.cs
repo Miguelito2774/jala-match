@@ -5,4 +5,5 @@ public enum ExperienceLevel
     Junior,
     Staff,
     Senior,
+    Architect,
 }

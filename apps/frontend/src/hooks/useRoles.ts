@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 interface RoleWithLevels {
   role: string;
+  areas: string[];
   levels: string[];
 }
 

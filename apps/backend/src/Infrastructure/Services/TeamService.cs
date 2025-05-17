@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Application.Abstractions.Services;
 using Application.DTOs;
+using Domain.Entities.Technologies;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Errors;
 using SharedKernel.Results;
@@ -19,31 +20,28 @@ public class TeamService : ITeamService
 
     public TeamService(
         IHttpClientFactory httpClientFactory,
-        ILogger<TeamService> logger,
-        ISfiaCalculatorService sfiaCalculator
+        ILogger<TeamService> logger
     )
     {
         _httpClient = httpClientFactory.CreateClient("AIService");
         _logger = logger;
     }
 
-    public async Task<Result<AiServiceResponse>> GenerateTeams(
-        Guid creatorId,
-        List<TeamRoleRequest> roles,
-        List<string> technologies,
+    public async Task<Result<AiServiceResponse>> GenerateTeams(Guid creatorId,
+        List<TeamRequirements> requirements,
         int sfiaLevel,
         int teamSize,
+        List<string> technologies,
         WeightCriteria weights,
         CancellationToken cancellationToken,
-        bool availability = true
-    )
+        bool availability = true)
     {
         try
         {
             var request = new
             {
                 CreatorId = creatorId,
-                Roles = roles, 
+                Requirements = requirements,
                 Technologies = technologies,
                 SfiaLevel = sfiaLevel,
                 TeamSize = teamSize,

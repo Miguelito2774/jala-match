@@ -25,10 +25,10 @@ internal sealed class GenerateTeamsCommandHandler
         {
             Result<AiServiceResponse> response = await _teamService.GenerateTeams(
                 command.CreatorId,
-                command.Roles,
-                command.Technologies,
+                command.Requirements,
                 command.SfiaLevel,
                 command.TeamSize,
+                command.Technologies,
                 command.Weights,
                 cancellationToken,
                 command.Availability

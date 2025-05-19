@@ -5,11 +5,20 @@ namespace Domain.Entities.Teams;
 
 public class TeamRequiredTechnology : Entity
 {
-    public required Guid TeamId { get; set; }
-    public required Guid TechnologyId { get; set; }
-    public int MinimumSfiaLevel { get; set; } = 3;
-    public bool IsMandatory { get; set; } = true;
+    public TeamRequiredTechnology(Guid teamId, Guid technologyId)
+    {
+        TeamId = teamId;
+        TechnologyId = technologyId;
+        MinimumSfiaLevel = 3;
+        IsMandatory = true;
+    }
 
-    public required Team Team { get; set; }
-    public required Technology Technology { get; set; }
+    public Guid TeamId { get; private set; }
+    public Guid TechnologyId { get; private set; }
+
+    public int MinimumSfiaLevel { get; set; }
+    public bool IsMandatory { get; set; }
+
+    public Team Team { get; set; }
+    public Technology Technology { get; set; }
 }

@@ -1,8 +1,13 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
+using Application.Commands.Teams.Create;
 using Application.DTOs;
+using Domain.Entities.Profiles;
+using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Errors;
 using SharedKernel.Results;
@@ -13,6 +18,10 @@ public class TeamService : ITeamService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<TeamService> _logger;
+    private readonly ITeamRepository _teamRepository;
+    private readonly IEmployeeProfileRepository _employeeProfileRepository;
+    private readonly ITechnologyRepository _technologyRepository;
+
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -20,21 +29,29 @@ public class TeamService : ITeamService
 
     public TeamService(
         IHttpClientFactory httpClientFactory,
-        ILogger<TeamService> logger
+        ILogger<TeamService> logger,
+        ITeamRepository teamRepository,
+        IEmployeeProfileRepository employeeProfileRepository,
+        ITechnologyRepository technologyRepository
     )
     {
         _httpClient = httpClientFactory.CreateClient("AIService");
         _logger = logger;
+        _teamRepository = teamRepository;
+        _employeeProfileRepository = employeeProfileRepository;
+        _technologyRepository = technologyRepository;
     }
 
-    public async Task<Result<AiServiceResponse>> GenerateTeams(Guid creatorId,
+    public async Task<Result<AiServiceResponse>> GenerateTeams(
+        Guid creatorId,
         List<TeamRequirements> requirements,
         int sfiaLevel,
         int teamSize,
         List<string> technologies,
         WeightCriteria weights,
         CancellationToken cancellationToken,
-        bool availability = true)
+        bool availability = true
+    )
     {
         try
         {
@@ -45,7 +62,7 @@ public class TeamService : ITeamService
                 Technologies = technologies,
                 SfiaLevel = sfiaLevel,
                 TeamSize = teamSize,
-                Weights = new 
+                Weights = new
                 {
                     weights.SfiaWeight,
                     weights.TechnicalWeight,
@@ -55,7 +72,7 @@ public class TeamService : ITeamService
                     weights.LanguageWeight,
                     weights.TimezoneWeight,
                 },
-                Availability = availability
+                Availability = availability,
             };
 
             string requestJson = JsonSerializer.Serialize(request, _jsonOptions);
@@ -170,6 +187,120 @@ public class TeamService : ITeamService
                 new Error(
                     "Teams.Generation.Failed",
                     $"Unexpected exception: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    public async Task<Result<TeamResponse>> CreateTeam(
+        CreateTeamCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            if (command.Members.All(m => m.EmployeeProfileId != command.LeaderId))
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "Team.InvalidLeader",
+                        "El líder debe ser parte de los miembros del equipo",
+                        ErrorType.Validation
+                    )
+                );
+            }
+
+            var missingTechs = new List<string>();
+            foreach (string techName in command.RequiredTechnologies.Distinct())
+            {
+                if (!await _technologyRepository.ExistsByNameAsync(techName))
+                {
+                    missingTechs.Add(techName);
+                }
+            }
+
+            if (missingTechs.Any())
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "Team.MissingTechnologies",
+                        $"Las siguientes tecnologías no están registradas: {string.Join(", ", missingTechs)}",
+                        ErrorType.Validation
+                    )
+                );
+            }
+
+            var team = new Team
+            {
+                Id = Guid.NewGuid(),
+                Name = command.Name,
+                CreatorId = command.CreatorId,
+                AiAnalysis = JsonSerializer.Serialize(command.Analysis, _jsonOptions),
+                WeightCriteria = JsonSerializer.Serialize(command.Weights, _jsonOptions),
+                CompatibilityScore = command.CompatibilityScore,
+                IsActive = true,
+            };
+
+            foreach (string techName in command.RequiredTechnologies.Distinct())
+            {
+                Technology? technology = await _technologyRepository.GetByNameAsync(techName);
+                team.RequiredTechnologies.Add(new TeamRequiredTechnology(team.Id, technology!.Id));
+            }
+
+            foreach (TeamMemberDto memberDto in command.Members)
+            {
+                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                    memberDto.EmployeeProfileId
+                );
+                if (profile is null)
+                {
+                    continue;
+                }
+
+                team.Members.Add(
+                    new TeamMember
+                    {
+                        EmployeeProfileId = memberDto.EmployeeProfileId,
+                        Name = $"{profile.FirstName} {profile.LastName}",
+                        Role = memberDto.Role,
+                        SfiaLevel = memberDto.SfiaLevel,
+                        IsLeader = memberDto.EmployeeProfileId == command.LeaderId,
+                    }
+                );
+            }
+
+            await _teamRepository.AddAsync(team, cancellationToken);
+            await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            return new TeamResponse
+            {
+                TeamId = team.Id,
+                Name = team.Name,
+                CreatorId = team.CreatorId,
+                CompatibilityScore = team.CompatibilityScore,
+                Members = team
+                    .Members.Select(m => new TeamMemberDto(
+                        m.EmployeeProfileId,
+                        m.Name,
+                        m.Role,
+                        m.SfiaLevel,
+                        m.IsLeader
+                    ))
+                    .ToList(),
+                RequiredTechnologies = command.RequiredTechnologies,
+                Analysis = command.Analysis,
+                Weights = command.Weights,
+                IsActive = team.IsActive,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear equipo");
+            return Result.Failure<TeamResponse>(
+                new Error(
+                    "Team.CreateError",
+                    $"Error al crear equipo: {ex.Message}",
                     ErrorType.Failure
                 )
             );

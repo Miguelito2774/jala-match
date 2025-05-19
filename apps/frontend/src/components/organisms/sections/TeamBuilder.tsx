@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { useRoles } from '@/hooks/useRoles';
 import { useTeamGenerator } from '@/hooks/useTeamGenerator';
+import { TeamWeights } from '@/hooks/useTeams';
 import { useTechnologies } from '@/hooks/useTechnologies';
 import { useWeightCriteria } from '@/hooks/useWeigthCriteria';
 
@@ -28,6 +29,7 @@ export const TeamBuilder = () => {
   const { criteria, loading: loadingCriteria } = useWeightCriteria();
   const { generateTeam, loading: generatingTeam, generatedTeam } = useTeamGenerator();
 
+  const [teamName, setTeamName] = useState<string>('');
   const [teamSize, setTeamSize] = useState<number>(3);
   const [teamRoles, setTeamRoles] = useState<{ role: string; area: string; level: string }[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
@@ -39,6 +41,8 @@ export const TeamBuilder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
   const [availableTechOptions, setAvailableTechOptions] = useState<SelectOption[]>([]);
+
+  const creatorId = 'b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e';
 
   useEffect(() => {
     if (criteria.length > 0) {
@@ -155,7 +159,6 @@ export const TeamBuilder = () => {
   };
 
   const handleGenerateTeams = async () => {
-    const creatorId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
     const params = {
       CreatorId: creatorId,
       TeamSize: teamSize,
@@ -175,6 +178,7 @@ export const TeamBuilder = () => {
         InterestsWeight: weights.interestsWeight || 0,
         TimezoneWeight: weights.timezoneWeight || 0,
       },
+      Availability: true,
     };
 
     const result = await generateTeam(params);
@@ -183,7 +187,21 @@ export const TeamBuilder = () => {
     }
   };
 
+  const handleTeamCreationSuccess = () => {
+    setShowResults(false);
+  };
+
   const isFormValid = totalWeight === 100 && selectedTechnologies.length > 0;
+
+  const formattedWeights: TeamWeights = {
+    sfiaWeight: weights.sfiaWeight || 0,
+    technicalWeight: weights.technicalWeight || 0,
+    psychologicalWeight: weights.psychologicalWeight || 0,
+    experienceWeight: weights.experienceWeight || 0,
+    languageWeight: weights.languageWeight || 0,
+    interestsWeight: weights.interestsWeight || 0,
+    timezoneWeight: weights.timezoneWeight || 0,
+  };
 
   if (loadingRoles || loadingTech || loadingCriteria) {
     return (
@@ -195,7 +213,19 @@ export const TeamBuilder = () => {
   }
 
   if (showResults && generatedTeam) {
-    return <TeamResultsPage teamData={generatedTeam} onBack={() => setShowResults(false)} />;
+    return (
+      <TeamResultsPage
+        teamData={generatedTeam}
+        formData={{
+          creatorId: creatorId,
+          teamName: teamName || 'Equipo Generado',
+          requiredTechnologies: selectedTechnologies,
+          weights: formattedWeights,
+        }}
+        onBack={() => setShowResults(false)}
+        onSuccess={handleTeamCreationSuccess}
+      />
+    );
   }
 
   return (
@@ -205,6 +235,18 @@ export const TeamBuilder = () => {
           <div>
             <h2 className="mb-4 text-lg font-medium text-gray-900">Requisitos del Equipo</h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Team Name Field */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Nombre del Equipo</label>
+                <Input
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="Ingrese el nombre del equipo"
+                  className="w-full"
+                />
+              </div>
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Tamaño del Equipo</label>
                 <Input type="number" min={1} value={teamSize} onChange={handleTeamSizeChange} className="w-full" />

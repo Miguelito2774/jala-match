@@ -28,8 +28,12 @@ public sealed record GenerateTeamsRequest(
 public sealed record CreateTeamsRequest(
     string Name,
     Guid CreatorId,
-    List<string> RequiredTechnologies,
-    List<Guid> MemberIds
+    List<TeamMemberDto> Members,
+    Guid LeaderId,
+    AiTeamAnalysis Analysis,
+    int CompatibilityScore,
+    WeightCriteria Weights,
+    List<string> RequiredTechnologies
 );
 
 public sealed record TeamMemberGenerated(
@@ -102,7 +106,30 @@ public class ReanalyzeTeamRequest
 public record TeamRequirements(
     string Role,
     string Area,
-    
-    [property: JsonConverter(typeof(JsonStringEnumConverter))]
-    ExperienceLevel Level
+    [property: JsonConverter(typeof(JsonStringEnumConverter))] ExperienceLevel Level
+);
+
+public class TeamResponse
+{
+    public Guid TeamId { get; set; }
+    public string Name { get; set; }
+    public Guid CreatorId { get; set; }
+    public double CompatibilityScore { get; set; }
+    public List<TeamMemberDto> Members { get; set; } = new();
+    public List<string>? RequiredTechnologies { get; set; } = new();
+
+    public AiTeamAnalysis? Analysis { get; set; }
+
+    public WeightCriteria? Weights { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public record TeamMemberDto(
+    Guid EmployeeProfileId,
+    string Name,
+    string Role,
+    int SfiaLevel,
+    bool IsLeader
 );

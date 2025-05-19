@@ -4,23 +4,22 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Core;
 
-internal sealed class TeamRequiredTechnologyConfiguration
-    : IEntityTypeConfiguration<TeamRequiredTechnology>
+public class TeamRequiredTechnologyConfiguration : IEntityTypeConfiguration<TeamRequiredTechnology>
 {
     public void Configure(EntityTypeBuilder<TeamRequiredTechnology> builder)
     {
-        builder.HasKey(trt => new { trt.TeamId, trt.TechnologyId });
+        builder.HasKey(rt => new { rt.TeamId, rt.TechnologyId });
 
         builder
-            .HasOne(trt => trt.Team)
+            .HasOne(rt => rt.Team)
             .WithMany(t => t.RequiredTechnologies)
-            .HasForeignKey(trt => trt.TeamId);
+            .HasForeignKey(rt => rt.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder
-            .HasOne(trt => trt.Technology)
-            .WithMany(t => t.TeamRequiredTechnologies as IEnumerable<TeamRequiredTechnology>)
-            .HasForeignKey(trt => trt.TechnologyId);
-
-        builder.Property(trt => trt.MinimumSfiaLevel).HasDefaultValue(3);
+            .HasOne(rt => rt.Technology)
+            .WithMany(t => t.TeamRequiredTechnologies)
+            .HasForeignKey(rt => rt.TechnologyId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

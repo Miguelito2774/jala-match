@@ -12,7 +12,8 @@ internal sealed class EmployeeProfileConfiguration : EntityConfiguration<Employe
         builder
             .HasOne(ep => ep.User)
             .WithOne(u => u.EmployeeProfile)
-            .HasForeignKey<EmployeeProfile>(ep => ep.UserId);
+            .HasForeignKey<EmployeeProfile>(ep => ep.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(ep => ep.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(ep => ep.LastName).HasMaxLength(100).IsRequired();

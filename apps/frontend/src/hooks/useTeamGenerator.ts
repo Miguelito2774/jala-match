@@ -21,14 +21,14 @@ interface TeamGeneratorParams {
   };
 }
 
-interface TeamMember {
+export interface TeamMember {
   id: string;
   name: string;
   role: string;
   sfia_Level: number;
 }
 
-interface RecommendedMember {
+export interface RecommendedMember {
   id: string;
   name: string;
   compatibility_Score: number;
@@ -37,7 +37,7 @@ interface RecommendedMember {
   team_Impact: string;
 }
 
-interface GeneratedTeamResponse {
+export interface GeneratedTeamResponse {
   teams: {
     team_Id: string;
     members: TeamMember[];

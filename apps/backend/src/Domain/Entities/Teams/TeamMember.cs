@@ -6,11 +6,12 @@ namespace Domain.Entities.Teams;
 
 public class TeamMember : Entity
 {
-    public required Guid TeamId { get; set; }
-    public required Guid EmployeeProfileId { get; set; }
-    public required TeamMemberRole Role { get; set; }
-    public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
-
-    public required Team Team { get; set; }
-    public required EmployeeProfile EmployeeProfile { get; set; }
+    public Guid TeamId { get; set; }
+    public Guid EmployeeProfileId { get; set; }
+    public string Name { get; set; }
+    public string Role { get; set; }
+    public int SfiaLevel { get; set; }
+    public bool IsLeader { get; set; }
+    public Team? Team { get; set; }
+    public EmployeeProfile? EmployeeProfile { get; set; }
 }

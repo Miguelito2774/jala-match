@@ -113,6 +113,11 @@ async def generate_teams(request: TeamGenerationRequest):
         2. Tecnologías: {request.technologies}
         3. Nivel SFIA mínimo: {request.sfia_level}
         4. Disponibilidad: {request.availability}
+
+        IMPORTANTE: 
+        - Los IDs deben ser válidos y existir en la tabla employee_profiles
+        - Los IDs deben ser exactamente los obtenidos de la consulta a la base de datos
+        - Nunca inventar IDs o usar formatos incorrectos
         
         Relaciones importantes:
         - La tabla principal es employee_profiles que contiene id, name, role, sfia_level, mbti, timezone, country y availability

@@ -2,14 +2,20 @@
 
 import { useState } from 'react';
 
+import { adaptGeneratedTeamToAITeamResponse } from '@/app/utils/adapters';
 import { Button } from '@/components/atoms/buttons/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { GeneratedTeamResponse } from '@/hooks/useTeamGenerator';
+import { TeamWeights, useTeams } from '@/hooks/useTeams';
 
 import { AlertCircle, ArrowLeft, CheckCircle, Crown, Info, User } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { buildCreateTeamRequest } from '../../../app/utils';
 
 interface TeamMember {
   id: string;
@@ -18,48 +24,29 @@ interface TeamMember {
   sfia_Level: number;
 }
 
-interface RecommendedMember {
-  id: string;
-  name: string;
-  compatibility_Score: number;
-  analysis: string;
-  potential_Conflicts: string[];
-  team_Impact: string;
-}
-
-interface TeamData {
-  teams: {
-    team_Id: string;
-    members: TeamMember[];
-  }[];
-  recommended_Leader: {
-    id: string;
-    name: string;
-    rationale: string;
-  };
-  team_Analysis: {
-    strengths: string[];
-    weaknesses: string[];
-    compatibility: string;
-  };
-  compatibility_Score: number;
-  recommended_members: RecommendedMember[];
-}
-
 interface TeamResultsPageProps {
-  teamData: TeamData;
+  teamData: GeneratedTeamResponse;
+  formData: {
+    creatorId: string;
+    teamName?: string;
+    requiredTechnologies: string[];
+    weights: TeamWeights;
+  };
   onBack: () => void;
+  onSuccess?: (teamId: string) => void;
 }
 
-export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
-  const [teamName, setTeamName] = useState('Equipo Generado');
+export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamResultsPageProps) => {
+  const { createTeam } = useTeams();
+
+  const [teamName, setTeamName] = useState(formData.teamName || 'Equipo Generado');
   const [isEditingName, setIsEditingName] = useState(false);
   const [currentLeader, setCurrentLeader] = useState(teamData.recommended_Leader.id);
-  const [currentTeamData, setCurrentTeamData] = useState<TeamData>(teamData);
   const [currentTeamMembers, setCurrentTeamMembers] = useState(teamData.teams[0].members);
   const [showMemberDetails, setShowMemberDetails] = useState<string | null>(null);
   const [showRecommendedMembers, setShowRecommendedMembers] = useState(false);
   const [showLeaderRationale, setShowLeaderRationale] = useState<string | null>(null);
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
 
   const [usedRecommendedMembers, setUsedRecommendedMembers] = useState<string[]>([]);
 
@@ -67,8 +54,8 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
     [teamData.recommended_Leader.id]: teamData.recommended_Leader.rationale,
   });
 
-  const analysis = currentTeamData.team_Analysis;
-  const score = currentTeamData.compatibility_Score;
+  const analysis = teamData.team_Analysis;
+  const score = teamData.compatibility_Score;
 
   const [originalMembers] = useState(teamData.teams[0].members);
   const [originalLeader] = useState(teamData.recommended_Leader.id);
@@ -99,7 +86,7 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
   };
 
   const handleSwapMember = (currentMemberId: string, recommendedMemberId: string) => {
-    const recommendedMember = currentTeamData.recommended_members.find((member) => member.id === recommendedMemberId);
+    const recommendedMember = teamData.recommended_members.find((member) => member.id === recommendedMemberId);
 
     if (!recommendedMember) return;
 
@@ -121,13 +108,52 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
   const handleRestoreOriginal = () => {
     setCurrentLeader(originalLeader);
     setCurrentTeamMembers(originalMembers);
-    setCurrentTeamData(teamData);
     setUsedRecommendedMembers([]);
   };
 
-  const filteredRecommendedMembers = currentTeamData.recommended_members.filter(
+  const filteredRecommendedMembers = teamData.recommended_members.filter(
     (member) => !usedRecommendedMembers.includes(member.id),
   );
+
+  const handleConfirmTeam = async () => {
+    setIsCreatingTeam(true);
+
+    const teamBuilderData = {
+      teamName: teamName,
+      creatorId: formData.creatorId,
+      weights: formData.weights,
+      requiredTechnologies: formData.requiredTechnologies,
+    };
+
+    const requestData = buildCreateTeamRequest(
+      adaptGeneratedTeamToAITeamResponse(teamData),
+      teamBuilderData,
+      currentLeader,
+    );
+
+    try {
+      const result = await createTeam(requestData);
+      if (result) {
+        toast.success('Equipo creado correctamente', {
+          description: `El equipo ${result.name} fue creado exitosamente`,
+        });
+
+        if (onSuccess) {
+          onSuccess(result.teamId);
+        }
+      } else {
+        toast.error('Error al crear el equipo', {
+          description: 'Por favor verifica los datos e intenta nuevamente',
+        });
+      }
+    } catch (_error) {
+      toast.error('Error al crear el equipo', {
+        description: 'Ocurrió un error en el servidor. Intenta más tarde.',
+      });
+    } finally {
+      setIsCreatingTeam(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -187,6 +213,10 @@ export const TeamResultsPage = ({ teamData, onBack }: TeamResultsPageProps) => {
             Restaurar Original
           </Button>
         </div>
+
+        <Button onClick={handleConfirmTeam} disabled={isCreatingTeam} className="bg-blue-600 hover:bg-blue-700">
+          {isCreatingTeam ? 'Creando equipo...' : 'Confirmar Equipo'}
+        </Button>
       </div>
 
       {/* Team Members */}

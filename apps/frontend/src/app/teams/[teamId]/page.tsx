@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as React from 'react';
 
 import { useRouter } from 'next/navigation';
@@ -33,12 +33,14 @@ interface TeamPageProps {
     teamId: string;
   }>;
 }
-export const TeamPage = ({ params }: TeamPageProps) => {
+
+export default function TeamPage({ params }: TeamPageProps) {
   const router = useRouter();
   const { getTeamById, deleteTeam, loading, error } = useTeams();
   const [team, setTeam] = useState<Team | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const { teamId } = use(params) as { teamId: string };
+  const unwrappedParams = React.use(params);
+  const { teamId } = unwrappedParams;
   const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -360,6 +362,4 @@ export const TeamPage = ({ params }: TeamPageProps) => {
       </div>
     </DashboardLayout>
   );
-};
-
-export default TeamPage;
+}

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 import { TeamCard } from '../../components/organisms/teams/TeamCard';
 
-export const TeamsListPage = () => {
+export default function TeamsListPage() {
   const router = useRouter();
   const { getAllTeams, deleteTeam, loading, error } = useTeams();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -114,6 +114,4 @@ export const TeamsListPage = () => {
       </div>
     </DashboardLayout>
   );
-};
-
-export default TeamsListPage;
+}

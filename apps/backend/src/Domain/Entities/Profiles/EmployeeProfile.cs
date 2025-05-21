@@ -15,13 +15,11 @@ public class EmployeeProfile : Entity
     public required bool Availability { get; set; }
     public required string Country { get; set; }
     public required string Timezone { get; set; }
-
     public required int SfiaLevelGeneral { get; set; }
-    public required string Specialization { get; set; }
     public required string Mbti { get; set; }
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
-    public string? VerificationNotes { get; set; }
 
+    public string? VerificationNotes { get; set; }
     public required User User { get; set; }
     public List<WorkExperience> WorkExperiences { get; set; } = new();
     public List<PersonalInterest> PersonalInterests { get; set; } = new();
@@ -30,5 +28,4 @@ public class EmployeeProfile : Entity
     public List<TeamMember> TeamMemberships { get; set; } = new();
     public List<ProfileVerification> Verifications { get; set; } = new();
     public List<EmployeeSpecializedRole> SpecializedRoles { get; set; } = new();
-
 }

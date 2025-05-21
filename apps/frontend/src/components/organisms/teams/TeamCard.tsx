@@ -20,7 +20,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress';
 import type { Team } from '@/hooks/useTeams';
 
-import { ChevronRight, Code, Crown, Loader2, Trash2, Users } from 'lucide-react';
+import { Code, Crown, Loader2, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TeamCardProps {
@@ -32,6 +32,10 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const maxAvatars = 5;
+  const visibleMembers = team.members.slice(0, maxAvatars);
+  const extraCount = team.members.length - visibleMembers.length;
 
   const getInitials = (name: string) => {
     return name
@@ -74,7 +78,7 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
   return (
     <>
       <Card
-        className="cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-md"
+        className="flex h-full cursor-pointer flex-col overflow-hidden transition-all duration-200 hover:shadow-md"
         onClick={handleViewTeam}
       >
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-2">
@@ -91,11 +95,11 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-4">
-          <div className="space-y-4">
+        <CardContent className="flex-1 pt-4">
+          <div className="h-full space-y-4">
             {/* Team Members */}
             <div className="flex flex-wrap gap-2">
-              {team.members.map((member) => (
+              {visibleMembers.map((member) => (
                 <div
                   key={member.employeeProfileId}
                   className={`flex items-center ${member.isLeader ? 'order-first' : ''}`}
@@ -115,6 +119,11 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
                   <span className="ml-1 text-xs text-gray-600">{member.name.split(' ')[0]}</span>
                 </div>
               ))}
+              {extraCount > 0 && (
+                <Badge variant="secondary" className="text-xs font-normal">
+                  +{extraCount}
+                </Badge>
+              )}
             </div>
 
             {/* Required Technologies */}
@@ -151,9 +160,6 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
               disabled={isDeleting}
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="sm" className="p-0 text-blue-600 hover:text-blue-800">
-              Ver detalles <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </CardFooter>

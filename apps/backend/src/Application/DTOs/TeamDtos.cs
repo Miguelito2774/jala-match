@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Domain.Entities.Enums;
+using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
 
 namespace Application.DTOs;
@@ -131,5 +132,68 @@ public record TeamMemberDto(
     string Name,
     string Role,
     int SfiaLevel,
-    bool IsLeader
+    bool? IsLeader
 );
+
+public class FindTeamMemberRequest
+{
+    public Guid TeamId { get; set; }
+    public string Role { get; set; }
+    public string Area { get; set; }
+    public string Level { get; set; }
+
+    public List<string> Technologies { get; set; } = new();
+}
+
+public class TeamMemberRecommendation
+{
+    [JsonPropertyName("employee_id")]
+    public Guid EmployeeId { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("role")]
+    public string Role { get; set; }
+
+    [JsonPropertyName("area")]
+    public string Area { get; set; }
+
+    [JsonPropertyName("technologies")]
+    public List<string> Technologies { get; set; }
+
+    [JsonPropertyName("sfia_level")]
+    public int SfiaLevel { get; set; }
+
+    [JsonPropertyName("compatibility_score")]
+    public int CompatibilityScore { get; set; }
+
+    [JsonPropertyName("analysis")]
+    public string Analysis { get; set; }
+}
+
+public class TeamMemberUpdateRequest
+{
+    public Guid TeamId { get; set; }
+
+    public List<TeamMemberDto> Members { get; set; } = new();
+}
+
+public class TeamWithUpdatedAnalysisResponse
+{
+    public TeamResponse Team { get; set; }
+    public int CompatibilityScore { get; set; }
+    public List<string>? UpdatedStrengths { get; set; }
+    public List<string>? UpdatedWeaknesses { get; set; }
+    public string? DetailedAnalysis { get; set; }
+    public List<string>? Recommendations { get; set; }
+}
+
+public class AiReanalysisResponse
+{
+    public int NewCompatibilityScore { get; set; }
+    public List<string> UpdatedStrengths { get; set; }
+    public List<string> UpdatedWeaknesses { get; set; }
+    public string DetailedAnalysis { get; set; }
+    public List<string> Recommendations { get; set; }
+}

@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Domain.Entities.Users;
+﻿using Domain.Entities.Users;
 using SharedKernel.Domain;
 
 namespace Domain.Entities.Teams;

@@ -21,4 +21,14 @@ public interface ITeamService
         CreateTeamCommand command,
         CancellationToken cancellationToken
     );
+
+    Task<Result<List<TeamMemberRecommendation>>> FindTeamMembers(
+        FindTeamMemberRequest request,
+        CancellationToken cancellationToken
+    );
+
+    Task<Result<TeamResponse>> AddTeamMember(
+        TeamMemberUpdateRequest request,
+        CancellationToken cancellationToken
+    );
 }

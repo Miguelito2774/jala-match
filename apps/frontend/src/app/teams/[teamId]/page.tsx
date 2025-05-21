@@ -5,6 +5,7 @@ import * as React from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { AddTeamMemberComponent } from '@/components/organisms/teams/AddMemberDialog';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import {
   AlertDialog,
@@ -41,11 +42,19 @@ export default function TeamPage({ params }: TeamPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const unwrappedParams = React.use(params);
   const { teamId } = unwrappedParams;
-  const [initialLoad, setInitialLoad] = useState(true);
+
+  // Refresh team data after adding members
+  const handleMembersAdded = async () => {
+    try {
+      const updated = await getTeamById(teamId);
+      setTeam(updated);
+    } catch {
+      toast.error('Error al recargar datos del equipo');
+    }
+  };
 
   useEffect(() => {
     const fetchTeam = async () => {
-      setInitialLoad(true);
       try {
         const data = await getTeamById(teamId);
         setTeam(data);
@@ -53,8 +62,6 @@ export default function TeamPage({ params }: TeamPageProps) {
         toast.error('Error al cargar el equipo', {
           description: err instanceof Error ? err.message : 'Ha ocurrido un error inesperado',
         });
-      } finally {
-        setInitialLoad(false);
       }
     };
 
@@ -100,15 +107,6 @@ export default function TeamPage({ params }: TeamPageProps) {
     return 'bg-red-100';
   };
 
-  if (initialLoad) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-        <p className="text-gray-600">Cargando información del equipo...</p>
-      </div>
-    );
-  }
-
   if (loading && !team) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
@@ -137,16 +135,18 @@ export default function TeamPage({ params }: TeamPageProps) {
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Button>
-
-          <Button
-            variant="destructive"
-            size="sm"
-            className="flex items-center gap-1"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            Eliminar equipo
-          </Button>
+          <div className="flex gap-2">
+            <AddTeamMemberComponent teamId={teamId} onMembersAdded={handleMembersAdded} />
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar equipo
+            </Button>
+          </div>
         </div>
 
         <div className="mb-8">

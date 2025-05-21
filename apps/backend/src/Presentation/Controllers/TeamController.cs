@@ -1,7 +1,9 @@
-﻿using Application.Commands.Teams.Create;
+﻿using Application.Commands.Teams.AddTeamMember;
+using Application.Commands.Teams.Create;
 using Application.Commands.Teams.Delete;
 using Application.Commands.Teams.GenerateTeams;
 using Application.DTOs;
+using Application.Queries.Teams.FindTeamMembers;
 using Application.Queries.Teams.GetAll;
 using Application.Queries.Teams.GetByCreatorId;
 using Application.Queries.Teams.GetById;
@@ -124,6 +126,30 @@ public sealed class TeamsController : ControllerBase
     {
         var query = new GetTeamsByCreatorIdQuery(creatorId);
         Result<List<TeamResponse>> result = await _sender.Send(query);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpPost("find")]
+    public async Task<IResult> FindTeamMembers([FromBody] FindTeamMemberRequest request)
+    {
+        var query = new FindTeamMembersQuery(
+            request.TeamId,
+            request.Role,
+            request.Area,
+            request.Level,
+            request.Technologies
+        );
+
+        Result<List<TeamMemberRecommendation>> result = await _sender.Send(query);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpPost("add")]
+    public async Task<IResult> AddTeamMember([FromBody] TeamMemberUpdateRequest request)
+    {
+        var command = new AddTeamMemberCommand(request.TeamId, request.Members);
+
+        Result<TeamResponse> result = await _sender.Send(command);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 

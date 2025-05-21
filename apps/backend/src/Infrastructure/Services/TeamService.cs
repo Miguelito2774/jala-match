@@ -7,7 +7,6 @@ using Application.DTOs;
 using Domain.Entities.Profiles;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Logging;
 using SharedKernel.Errors;
 using SharedKernel.Results;
@@ -301,6 +300,248 @@ public class TeamService : ITeamService
                 new Error(
                     "Team.CreateError",
                     $"Error al crear equipo: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    public async Task<Result<List<TeamMemberRecommendation>>> FindTeamMembers(
+        FindTeamMemberRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            Team? team = await _teamRepository.GetByIdAsync(request.TeamId, cancellationToken);
+            if (team == null)
+            {
+                return Result.Failure<List<TeamMemberRecommendation>>(
+                    new Error(
+                        "Team.NotFound",
+                        $"No se encontró el equipo con ID {request.TeamId}",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            var httpRequest = new
+            {
+                TeamId = request.TeamId.ToString(),
+                request.Role,
+                request.Area,
+                request.Level,
+                request.Technologies,
+            };
+
+            string requestJson = JsonSerializer.Serialize(httpRequest, _jsonOptions);
+            _logger.LogInformation(
+                "Request payload for team member search: {RequestPayload}",
+                requestJson
+            );
+
+            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            _logger.LogInformation("Sending request to AI Service for team member search");
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await _httpClient.PostAsync(
+                    "/find-team-members",
+                    content,
+                    cancellationToken
+                );
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(
+                    httpEx,
+                    "HTTP request failed while calling AI Service: {Message}",
+                    httpEx.Message
+                );
+                return Result.Failure<List<TeamMemberRecommendation>>(
+                    new Error(
+                        "Teams.FindMembers.HttpRequestFailed",
+                        $"Failed to connect to AI Service: {httpEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+
+            string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogInformation(
+                "Received response from AI Service with status code {StatusCode}",
+                response.StatusCode
+            );
+            _logger.LogDebug("Response content: {Content}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "AI Service returned error: {StatusCode} - {Content}",
+                    response.StatusCode,
+                    responseContent
+                );
+                return Result.Failure<List<TeamMemberRecommendation>>(
+                    new Error(
+                        "Teams.FindMembers.Failed",
+                        $"AI Service responded with {response.StatusCode}: {responseContent}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+
+            try
+            {
+                List<TeamMemberRecommendation>? recommendations = JsonSerializer.Deserialize<
+                    List<TeamMemberRecommendation>
+                >(responseContent, _jsonOptions);
+
+                if (recommendations == null)
+                {
+                    _logger.LogWarning("Failed to deserialize AI Service response");
+                    return Result.Failure<List<TeamMemberRecommendation>>(
+                        new Error(
+                            "Teams.FindMembers.DeserializationFailed",
+                            "Failed to deserialize response from AI Service",
+                            ErrorType.Failure
+                        )
+                    );
+                }
+
+                return recommendations;
+            }
+            catch (JsonException jsonEx)
+            {
+                _logger.LogError(
+                    jsonEx,
+                    "Failed to deserialize response: {Message}",
+                    jsonEx.Message
+                );
+                return Result.Failure<List<TeamMemberRecommendation>>(
+                    new Error(
+                        "Teams.FindMembers.DeserializationFailed",
+                        $"Failed to parse AI Service response: {jsonEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Unexpected error while finding team members: {Message}",
+                ex.Message
+            );
+            return Result.Failure<List<TeamMemberRecommendation>>(
+                new Error(
+                    "Teams.FindMembers.Failed",
+                    $"Unexpected exception: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    public async Task<Result<TeamResponse>> AddTeamMember(
+        TeamMemberUpdateRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            Team? team = await _teamRepository.GetByIdAsync(request.TeamId, cancellationToken);
+            if (team == null)
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "Team.NotFound",
+                        $"No se encontró el equipo con ID {request.TeamId}",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            foreach (TeamMemberDto member in request.Members)
+            {
+                EmployeeProfile? employeeProfile = await _employeeProfileRepository.GetByIdAsync(
+                    member.EmployeeProfileId
+                );
+
+                if (employeeProfile == null)
+                {
+                    return Result.Failure<TeamResponse>(
+                        new Error(
+                            "Employee.NotFound",
+                            $"No se encontró el empleado con ID {member.EmployeeProfileId}",
+                            ErrorType.NotFound
+                        )
+                    );
+                }
+
+                if (team.Members.Any(m => m.EmployeeProfileId == member.EmployeeProfileId))
+                {
+                    continue; // Skip if member already exists
+                }
+
+                var newMember = new TeamMember
+                {
+                    Id = Guid.NewGuid(),
+                    TeamId = request.TeamId,
+                    EmployeeProfileId = member.EmployeeProfileId,
+                    Role = member.Role,
+                    SfiaLevel = member.SfiaLevel,
+                    Name = member.Name,
+                    IsLeader = false,
+                };
+
+                team.Members.Add(newMember);
+            }
+
+            await _teamRepository.UpdateAsync(team, cancellationToken);
+            await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            // Return updated team response
+            return Result.Success(
+                new TeamResponse
+                {
+                    TeamId = team.Id,
+                    Name = team.Name,
+                    CreatorId = team.CreatorId,
+                    CompatibilityScore = team.CompatibilityScore,
+                    Members = team
+                        .Members.Select(m => new TeamMemberDto(
+                            m.EmployeeProfileId,
+                            m.Name,
+                            m.Role,
+                            m.SfiaLevel,
+                            m.IsLeader
+                        ))
+                        .ToList(),
+                    RequiredTechnologies = team
+                        .RequiredTechnologies.Select(rt => rt.Technology.Name)
+                        .ToList(),
+                    Analysis = JsonSerializer.Deserialize<AiTeamAnalysis?>(
+                        team.AiAnalysis ?? "{}",
+                        _jsonOptions
+                    ),
+                    Weights = JsonSerializer.Deserialize<WeightCriteria>(
+                        team.WeightCriteria ?? "{}",
+                        _jsonOptions
+                    ),
+                    IsActive = team.IsActive,
+                }
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al añadir miembros al equipo");
+            return Result.Failure<TeamResponse>(
+                new Error(
+                    "Team.AddMemberError",
+                    $"Error al añadir miembros al equipo: {ex.Message}",
                     ErrorType.Failure
                 )
             );

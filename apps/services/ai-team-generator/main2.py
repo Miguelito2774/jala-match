@@ -1,11 +1,12 @@
 from typing import List
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import UUID4, BaseModel, Field
 import os
 import json
 from dotenv import load_dotenv
 from anthropic import Anthropic
 from fastapi.middleware.cors import CORSMiddleware
+from team_db_service import TeamDatabaseService
 
 from init import ask_ia 
 
@@ -99,49 +100,75 @@ class TeamAnalysisRequest(BaseModel):
         allow_population_by_field_name = True
 
 
+class FindTeamMemberRequest(BaseModel):
+    team_id: str = Field(alias="TeamId")
+    role: str = Field(alias="Role")
+    area: str = Field(alias="Area")
+    level: str = Field(alias="Level")
+    technologies: list[str] = Field(alias="Technologies")
+
+    class Config:
+        populate_by_name = True
+        allow_population_by_field_name = True
+
+class TeamMemberRecommendation(BaseModel):
+    employee_id: str
+    name: str
+    role: str
+    sfia_level: int
+    compatibility_score: int
+    analysis: str
+    potential_conflicts: list[str]
+    team_impact: str
+
+class TeamReanalysisRequest(BaseModel):
+    team_id: str = Field(alias="TeamId")
+    members: list[dict]
+    technologies: list[str]
+    weights: dict
+
+
+class TeamMember(BaseModel):
+    profile_id: UUID4
+    first_name: str
+    last_name: str
+    technologies: list[str]
+    mbti: str
+
+class TeamData(BaseModel):
+    id: UUID4
+    name: str
+    compatibility_score: int
+    members: list[TeamMember]
+
+class Candidate(BaseModel):
+    employee_id: UUID4
+    name: str
+    role: str
+    sfia_level: int
+    technologies: list[str]
+
+
 @app.post("/generate-teams")
 async def generate_teams(request: TeamGenerationRequest):
+    # Initialize database service
+    db_service = TeamDatabaseService("postgresql://postgres:postgres@postgres:5432/postgres-db")
+    await db_service.connect()
+    
     try:
-        print("Received request:", request.dict())
+        employees_data = await db_service.get_generation_candidates(
+            [req.dict(by_alias=True) for req in request.requirements],
+            request.technologies,
+            request.sfia_level,
+            request.availability
+        )
         
-        roles_list = [req.role for req in request.requirements]
-        
-        members_query = f"""
-        De mi base de datos necesito obtener empleados que cumplan estos criterios:
-        
-        1. Roles: {roles_list}
-        2. Tecnologías: {request.technologies}
-        3. Nivel SFIA mínimo: {request.sfia_level}
-        4. Disponibilidad: {request.availability}
-        
-        Relaciones importantes:
-        - La tabla principal es employee_profiles que contiene id, name, role, sfia_level, mbti, timezone, country y availability
-        - Las tecnologías están en employee_technologies relacionada con technology
-        - Los idiomas están en employee_language
-        - Los intereses están en personal_interests
-        - La experiencia laboral está en work_experience
-        - employee_profiles -> employee_specialized_roles (roles y niveles)
-        - employee_specialized_roles -> specialized_roles -> technical_areas (área técnica)
-        - employee_technologies -> technologies (skills técnicos)
-        
-        Por favor:
-        - Trae al menos 10 empleados que mejor cumplan los criterios
-        - Cada empleado debe tener: id, name, role, technologies (array), sfia_level, mbti, interests (array), timezone y country
-        - Si un empleado cumple con al menos una tecnología solicitada, inclúyelo
-        - Prioriza empleados con mayor número de tecnologías coincidentes
-        - Solo devuelve datos en formato JSON
-        """
-        
-        employees_data = await ask_ia(members_query)
-        
-        if not employees_data or not isinstance(employees_data, list) or len(employees_data) == 0:
-            raise HTTPException(status_code=500, detail="No se pudieron obtener datos de empleados desde MCP")
-        
-        print(f"Obtenidos {len(employees_data)} empleados desde MCP")
+        if not employees_data or len(employees_data) == 0:
+            raise HTTPException(status_code=404, detail="No se encontraron candidatos que cumplan con los criterios")
         
         client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
-
-        employees_json = json.dumps(employees_data, ensure_ascii=False)
+        
+        employees_json = json.dumps(employees_data, ensure_ascii=False, default=str)
         
         prompt = f"""
         # Análisis de Formación de Equipos
@@ -153,8 +180,8 @@ async def generate_teams(request: TeamGenerationRequest):
 
         ## Requisitos del Equipo
         - Tamaño del equipo: {request.team_size}
--        - Roles requeridos: {[role.role for role in request.requirements]}
-+        - Areas requeridas: {[req.area for req in request.requirements]}
+        - Roles requeridos: {[role.role for role in request.requirements]}
+        - Areas requeridas: {[req.area for req in request.requirements]}
         - Tecnologías requeridas: {request.technologies}
         - Nivel SFIA mínimo: {request.sfia_level}
 
@@ -261,5 +288,180 @@ async def generate_teams(request: TeamGenerationRequest):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al analizar resultado de formación de equipo: {str(e)}")
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db_service.disconnect()
+
+@app.post("/find-team-members")
+async def find_team_members(request: FindTeamMemberRequest):
+    # Initialize database service
+    db_service = TeamDatabaseService("postgresql://postgres:postgres@postgres:5432/postgres-db")
+    await db_service.connect()
+    
+    try:
+        # Get team data reliably with direct database access
+        team_data = await db_service.get_team_data(request.team_id)
+        if not team_data:
+            raise HTTPException(status_code=404, detail="No se encontró información del equipo")
+          
+        # Get candidates reliably with direct database access
+        candidates_data = await db_service.get_team_candidates(
+            request.team_id,
+            request.role,
+            request.area,
+            request.level,
+            request.technologies,
+        )
+        
+        if not candidates_data or len(candidates_data) == 0:
+            raise HTTPException(status_code=404, detail="No se encontraron candidatos que cumplan con los criterios")
+        
+        # Use direct Claude API for analysis instead of ask_ia to avoid inconsistencies
+        client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+        
+        # Format data for the prompt
+        team_json = json.dumps(team_data, ensure_ascii=False, default=str)
+        candidates_json = json.dumps(candidates_data, ensure_ascii=False, default=str)
+        technologies_json = json.dumps(request.technologies, ensure_ascii=False)
+        
+        # Create prompt for compatibility analysis
+        prompt = f"""
+        # Análisis de Compatibilidad de Nuevos Miembros para Equipo Existente
+
+        ## Datos del Equipo Actual
+        ```json
+        {team_json}
+        ```
+
+        ## Datos de Candidatos Disponibles
+        ```json
+        {candidates_json}
+        ```
+
+        ## Criterios de Búsqueda
+        - Rol buscado: {request.role}
+        - Área técnica: {request.area}
+        - Nivel requerido: {request.level}
+        - Tecnologías requeridas: {technologies_json}
+
+        ## Instrucciones
+        1. Evalúa los candidatos según los criterios de pesos del equipo actual
+        2. Para cada candidato, calcula un puntaje de compatibilidad (0-100) dando especial importancia a:
+           - Compatibilidad con las tecnologías requeridas ({technologies_json})
+           - Nivel SFIA adecuado para el rol
+           - Complementariedad con los perfiles MBTI actuales del equipo
+        3. Analiza cómo cada candidato complementaría al equipo actual considerando:
+           - Compatibilidad técnica (stack tecnológico)
+           - Compatibilidad de personalidad (MBTI)
+           - Experiencia relevante
+           - Complementariedad con las fortalezas y debilidades del equipo actual
+        4. Selecciona los 5 mejores candidatos según su puntaje de compatibilidad
+
+        ### IMPORTANTE:
+        - UTILIZA ÚNICAMENTE los candidatos proporcionados en los datos JSON
+        - Asegúrate que el candidato no sea ya miembro del equipo
+        - Realiza un análisis profundo considerando aspectos técnicos y de compatibilidad psicológica
+        - Da mayor peso a candidatos con experiencia en las tecnologías específicamente solicitadas
+
+        ## Formato de Respuesta Requerido
+        Responde EXCLUSIVAMENTE con un array JSON con la siguiente estructura exacta, sin texto adicional:
+
+        ```json
+        [
+          {{
+            "employee_id": "guid-real-del-empleado",
+            "name": "Nombre Completo",
+            "role": "Rol Actual",
+            "area": "Área Técnica",
+            "technologies": ["Tecnología1", "Tecnología2", "Tecnología3"],
+            "sfia_level": 3,
+            "compatibility_score": 85,
+            "analysis": "Análisis detallado de por qué este candidato sería una buena adición al equipo."
+          }}
+        ]
+        ```
+        
+        IMPORTANTE:
+        1. Tu respuesta debe ser EXACTAMENTE 5 candidatos en un array JSON
+        2. Los candidatos deben estar ordenados por puntaje de compatibilidad (de mayor a menor)
+        3. No incluyas ningún texto fuera del JSON
+        4. Asegúrate de incluir el campo "technologies" como un array de strings
+        5. Cada análisis debe ser detallado pero conciso (2-4 oraciones)
+        6. Asegúrate de que los IDs de los empleados sean exactamente los proporcionados en los datos
+        7. La respuesta debe estar en español
+        """
+
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4000,
+            temperature=0.2,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        try:
+            recommendations = json.loads(response.content[0].text)
+            return recommendations
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al analizar recomendaciones de candidatos: {str(e)}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await db_service.disconnect()
+    
+
+@app.post("/reanalyze-team")
+async def reanalyze_team(request: TeamReanalysisRequest):
+    try:
+        client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+        
+        prompt = f"""
+        # Re-análisis de Equipo Post-Adición de Miembro
+        
+        ## Miembros Actuales del Equipo:
+        {json.dumps(request.members, indent=2)}
+        
+        ## Tecnologías Requeridas:
+        {', '.join(request.technologies)}
+        
+        ## Pesos de Compatibilidad:
+        {json.dumps(request.weights, indent=2)}
+        
+        ## Tareas:
+        1. Calcular nuevo puntaje de compatibilidad (0-100)
+        2. Identificar 3 nuevas fortalezas clave
+        3. Detectar 2 posibles debilidades emergentes
+        4. Analizar impacto en dinámica del equipo
+        5. Proporcionar recomendaciones de mejora
+        
+        ## Formato Requerido:
+        {{
+          "new_compatibility_score": 85,
+          "updated_strengths": [
+            "Fortaleza 1 con detalles técnicos",
+            "Fortaleza 2 con justificación psicológica"
+          ],
+          "updated_weaknesses": [
+            "Debilidad 1 relacionada con skills faltantes",
+            "Debilidad 2 de coordinación horaria"
+          ],
+          "detailed_analysis": "Análisis de 200 palabras...",
+          "recommendations": [
+            "Recomendación 1 para mejorar el equipo",
+            "Recomendación 2 de capacitación"
+          ]
+        }}
+        """
+        
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=3000,
+            temperature=0.1,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return json.loads(response.content[0].text)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

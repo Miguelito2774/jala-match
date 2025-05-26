@@ -29,7 +29,8 @@ async def ask_ia(prompt):
 
     llm = ChatAnthropic(
         model="claude-3-5-sonnet-latest",
-        anthropic_api_key=os.getenv("CLAUDE_API_KEY") 
+        anthropic_api_key=os.getenv("CLAUDE_API_KEY"),
+        max_tokens_to_sample=4000, 
     )
 
     agent = MCPAgent(llm=llm, client=client, max_steps=30)

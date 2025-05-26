@@ -1,7 +1,9 @@
 using Application.Abstractions.Data;
+using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Domain.Services;
 using Infrastructure.Database;
+using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +41,9 @@ public static class DependencyInjection
         services.AddScoped<ICacheService, CacheService>();
         services.AddScoped<ITeamService, TeamService>();
         services.AddScoped<ISfiaCalculatorService, SfiaCalculatorService>();
+        services.AddScoped<ITeamRepository, TeamRepository>();
+        services.AddScoped<IEmployeeProfileRepository, EmployeeProfileRepository>();
+        services.AddScoped<ITechnologyRepository, TechnologyRepository>();
 
         services.AddHttpClient(
             "AIService",
@@ -48,8 +53,6 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromMinutes(5);
             }
         );
-
-        services.AddScoped<ITeamService, TeamService>();
 
         return services;
     }

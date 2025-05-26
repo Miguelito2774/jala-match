@@ -25,12 +25,14 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<EmployeeLanguage> EmployeeLanguages => Set<EmployeeLanguage>();
     public DbSet<TeamRequiredTechnology> TeamRequiredTechnologies => Set<TeamRequiredTechnology>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
-    public DbSet<EmployeeSpecializedRole> EmployeeSpecializedRoles => Set<EmployeeSpecializedRole>();
+    public DbSet<EmployeeSpecializedRole> EmployeeSpecializedRoles =>
+        Set<EmployeeSpecializedRole>();
     public DbSet<SpecializedRole> SpecializedRoles => Set<SpecializedRole>();
-    
+
     public DbSet<SpecializedRoleSkill> SpecializedRoleSkills => Set<SpecializedRoleSkill>();
     public DbSet<TechnicalArea> TechnicalAreas => Set<TechnicalArea>();
-    
+    public DbSet<RecommendedMember> RecommendedMembers => Set<RecommendedMember>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

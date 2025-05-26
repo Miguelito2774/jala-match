@@ -26,8 +26,7 @@ export const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 w-64 transform bg-white shadow-xl transition-all duration-300 ease-in-out',
-          'border-r border-gray-200',
+          'fixed inset-y-0 left-0 z-50 w-64 transform bg-white shadow-xl transition-all duration-300 ease-in-out',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           'md:translate-x-0',
         )}
@@ -45,7 +44,18 @@ export const Sidebar = () => {
           </div>
           <div className="flex flex-1 flex-col overflow-y-auto pb-10">
             <nav className="flex-1 space-y-1 px-2 py-4">
-              <SidebarItem href={ROUTES.MANAGER.TEAM_BUILDER} icon={Users} label="Crear Equipos" />
+              <SidebarItem
+                href={ROUTES.MANAGER.TEAM_BUILDER}
+                icon={Users}
+                label="Crear Equipos"
+                onNavigate={() => setIsOpen(false)}
+              />
+              <SidebarItem
+                href={ROUTES.MANAGER.TEAM_LIST}
+                icon={Users}
+                label="Mis Equipos"
+                onNavigate={() => setIsOpen(false)}
+              />
             </nav>
           </div>
         </div>

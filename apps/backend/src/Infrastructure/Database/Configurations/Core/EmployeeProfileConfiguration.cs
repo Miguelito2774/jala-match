@@ -12,13 +12,13 @@ internal sealed class EmployeeProfileConfiguration : EntityConfiguration<Employe
         builder
             .HasOne(ep => ep.User)
             .WithOne(u => u.EmployeeProfile)
-            .HasForeignKey<EmployeeProfile>(ep => ep.UserId);
+            .HasForeignKey<EmployeeProfile>(ep => ep.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(ep => ep.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(ep => ep.LastName).HasMaxLength(100).IsRequired();
         builder.Property(ep => ep.Country).HasMaxLength(100).IsRequired();
         builder.Property(ep => ep.Timezone).HasMaxLength(50).IsRequired();
-        builder.Property(ep => ep.Specialization).HasMaxLength(100).IsRequired();
         builder.Property(ep => ep.Mbti).HasMaxLength(4).IsRequired();
         builder.Property(ep => ep.SfiaLevelGeneral).HasPrecision(3, 1).IsRequired();
         builder

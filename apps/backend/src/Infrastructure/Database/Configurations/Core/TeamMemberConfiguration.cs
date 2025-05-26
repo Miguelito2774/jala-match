@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Domain.Entities.Teams;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,7 +17,8 @@ internal sealed class TeamMemberConfiguration : IEntityTypeConfiguration<TeamMem
         builder
             .HasOne(tm => tm.EmployeeProfile)
             .WithMany(ep => ep.TeamMemberships)
-            .HasForeignKey(tm => tm.EmployeeProfileId);
+            .HasForeignKey(tm => tm.EmployeeProfileId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(tm => tm.Role).HasConversion<string>().HasMaxLength(50);
     }

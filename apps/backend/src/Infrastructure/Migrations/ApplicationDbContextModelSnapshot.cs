@@ -204,12 +204,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sfia_level_general");
 
-                    b.Property<string>("Specialization")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("specialization");
-
                     b.Property<string>("Timezone")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -395,6 +389,37 @@ namespace Infrastructure.Migrations
                     b.ToTable("work_experiences", "public");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Teams.RecommendedMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Analysis")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("analysis");
+
+                    b.Property<int>("CompatibilityScore")
+                        .HasColumnType("integer")
+                        .HasColumnName("compatibility_score");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_recommended_members");
+
+                    b.ToTable("recommended_members", "public");
+                });
+
             modelBuilder.Entity("Domain.Entities.Teams.Team", b =>
                 {
                     b.Property<Guid>("Id")
@@ -415,68 +440,15 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creator_id");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<int>("ExperienceWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("experience_weight");
-
-                    b.Property<int>("InterestsWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("interests_weight");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
-
-                    b.Property<int>("LanguageWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("language_weight");
-
-                    b.Property<string>("MembersJson")
-                        .HasColumnType("text")
-                        .HasColumnName("members_json");
-
-                    b.Property<int>("MinimumSfiaLevel")
-                        .HasColumnType("integer")
-                        .HasColumnName("minimum_sfia_level");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("name");
-
-                    b.Property<int>("PsychologicalWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("psychological_weight");
-
-                    b.Property<string>("RequiredRoles")
-                        .HasColumnType("text")
-                        .HasColumnName("required_roles");
-
-                    b.Property<string>("RequiredTechnologiesJson")
-                        .HasColumnType("text")
-                        .HasColumnName("required_technologies_json");
-
-                    b.Property<int>("SfiaWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("sfia_weight");
-
-                    b.Property<int>("TeamSize")
-                        .HasColumnType("integer")
-                        .HasColumnName("team_size");
-
-                    b.Property<int>("TechnicalWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("technical_weight");
-
-                    b.Property<int>("TimezoneWeight")
-                        .HasColumnType("integer")
-                        .HasColumnName("timezone_weight");
 
                     b.Property<string>("WeightCriteria")
                         .HasColumnType("jsonb")
@@ -505,15 +477,24 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("JoinedDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("joined_date");
+                    b.Property<bool>("IsLeader")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_leader");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
 
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("role");
+
+                    b.Property<int>("SfiaLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("sfia_level");
 
                     b.HasKey("TeamId", "EmployeeProfileId")
                         .HasName("pk_team_members");
@@ -543,9 +524,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("is_mandatory");
 
                     b.Property<int>("MinimumSfiaLevel")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(3)
                         .HasColumnName("minimum_sfia_level");
 
                     b.HasKey("TeamId", "TechnologyId")
@@ -837,7 +816,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.Profiles.EmployeeProfile", "EmployeeProfile")
                         .WithMany("TeamMemberships")
                         .HasForeignKey("EmployeeProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_team_members_employee_profiles_employee_profile_id");
 
@@ -865,7 +844,7 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.Technologies.Technology", "Technology")
                         .WithMany("TeamRequiredTechnologies")
                         .HasForeignKey("TechnologyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_team_required_technologies_technologies_technology_id");
 

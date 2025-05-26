@@ -19,6 +19,7 @@ type SelectProps<T> = {
   className?: string;
   placeholder?: string;
   value?: SelectOption<T> | SelectOption<T>[];
+  isDisabled?: boolean;
 };
 
 export const Select = <T,>({
@@ -29,6 +30,7 @@ export const Select = <T,>({
   className,
   placeholder,
   value,
+  isDisabled = false,
 }: SelectProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<SelectOption<T> | null>(
@@ -64,11 +66,12 @@ export const Select = <T,>({
     <div className={cn('relative', className)}>
       <div
         className={cn(
-          'flex w-full cursor-pointer items-center justify-between rounded-md border border-gray-300 p-2',
+          'flex w-full items-center justify-between rounded-md border border-gray-300 p-2',
           'focus:ring-primary focus:border-transparent focus:ring-2 focus:outline-none',
-          isOpen && 'ring-primary border-transparent ring-2',
+          isOpen && !isDisabled && 'ring-primary border-transparent ring-2',
+          isDisabled && 'cursor-not-allowed opacity-50',
         )}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !isDisabled && setIsOpen(!isOpen)}
       >
         <div className="flex flex-wrap gap-1">
           {isMulti ? (

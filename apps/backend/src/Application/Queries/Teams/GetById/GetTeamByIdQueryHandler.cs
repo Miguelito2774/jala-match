@@ -1,124 +1,62 @@
-﻿using System.Text.Json;
-using Application.Abstractions.Data;
+using System.Text.Json;
 using Application.Abstractions.Messaging;
-using Domain.Entities.Profiles;
+using Application.Abstractions.Repositories;
+using Application.DTOs;
 using Domain.Entities.Teams;
-using Microsoft.EntityFrameworkCore;
+using SharedKernel.Errors;
 using SharedKernel.Results;
 
 namespace Application.Queries.Teams.GetById;
 
-internal sealed class GetTeamByIdQueryHandler(IApplicationDbContext context)
-    : IQueryHandler<GetTeamByIdQuery, TeamResponse>
+internal sealed class GetTeamByIdQueryHandler : IQueryHandler<GetTeamByIdQuery, TeamResponse>
 {
+    private readonly ITeamRepository _teamRepository;
+
+    public GetTeamByIdQueryHandler(ITeamRepository teamRepository) =>
+        _teamRepository = teamRepository;
+
     public async Task<Result<TeamResponse>> Handle(
         GetTeamByIdQuery query,
         CancellationToken cancellationToken
     )
     {
-        Team? team = await context
-            .Teams.AsNoTracking()
-            .Include(t => t.Creator)
-            .Include(t => t.Members)
-            .ThenInclude(m => m.EmployeeProfile)
-            .ThenInclude(ep => ep.User)
-            .Include(t => t.Members)
-            .ThenInclude(m => m.EmployeeProfile)
-            .ThenInclude(ep => ep.Technologies)
-            .ThenInclude(et => et.Technology)
-            .Include(t => t.RequiredTechnologies)
-            .ThenInclude(rt => rt.Technology)
-            .FirstOrDefaultAsync(t => t.Id == query.TeamId, cancellationToken);
-
+        Team? team = await _teamRepository.GetByIdAsync(query.TeamId, cancellationToken);
         if (team is null)
         {
-            return Result.Failure<TeamResponse>(TeamErrors.NotFound(query.TeamId));
-        }
-
-        var requiredTechnologies = team
-            .RequiredTechnologies.Select(rt => rt.Technology.Name)
-            .ToList();
-
-        if (!requiredTechnologies.Any() && !string.IsNullOrEmpty(team.RequiredTechnologiesJson))
-        {
-            requiredTechnologies =
-                JsonSerializer.Deserialize<List<string>>(team.RequiredTechnologiesJson) ?? new();
-        }
-
-        List<TeamMemberDto> members = GetTeamMembersFromEntity(team);
-
-        if (!members.Any() && !string.IsNullOrEmpty(team.MembersJson))
-        {
-            members = await GetTeamMembersFromJson(context, team.MembersJson, cancellationToken);
-        }
-
-        if (team.AiAnalysis != null)
-        {
-            return new TeamResponse(
-                team.Id,
-                team.Name,
-                team.CreatorId,
-                requiredTechnologies,
-                members,
-                team.CompatibilityScore,
-                team.IsActive,
-                team.AiAnalysis
+            return Result.Failure<TeamResponse>(
+                new Error("Team.NotFound", "Equipo no encontrado", ErrorType.Failure)
             );
         }
 
-        return new TeamResponse(
-            team.Id,
-            team.Name,
-            team.CreatorId,
-            requiredTechnologies,
-            members,
-            team.CompatibilityScore,
-            team.IsActive,
-            "{}"
-        );
-    }
+        var response = new TeamResponse
+        {
+            TeamId = team.Id,
+            Name = team.Name,
+            CreatorId = team.CreatorId,
+            CompatibilityScore = team.CompatibilityScore,
+            Members = team
+                .Members.Select(m => new TeamMemberDto(
+                    m.EmployeeProfileId,
+                    m.Name,
+                    m.Role,
+                    m.SfiaLevel,
+                    m.IsLeader
+                ))
+                .ToList(),
+            RequiredTechnologies = team
+                .RequiredTechnologies.Select(rt => rt.Technology.Name)
+                .ToList(),
+            Analysis =
+                team.AiAnalysis != null
+                    ? JsonSerializer.Deserialize<AiTeamAnalysis>(team.AiAnalysis)
+                    : null,
+            Weights =
+                team.WeightCriteria != null
+                    ? JsonSerializer.Deserialize<WeightCriteria>(team.WeightCriteria)
+                    : null,
+            IsActive = team.IsActive,
+        };
 
-    private static List<TeamMemberDto> GetTeamMembersFromEntity(Team team)
-    {
-        return team
-            .Members.Select(m => new TeamMemberDto(
-                m.EmployeeProfile.Id,
-                $"{m.EmployeeProfile.FirstName} {m.EmployeeProfile.LastName}",
-                m.EmployeeProfile.User.Role.ToString(),
-                m.EmployeeProfile.Technologies.Select(t => t.Technology.Name).ToList(),
-                m.EmployeeProfile.SfiaLevelGeneral,
-                m.EmployeeProfile.Mbti,
-                m.EmployeeProfile.PersonalInterests.Select(pi => pi.Name).ToList()
-            ))
-            .ToList();
-    }
-
-    private static async Task<List<TeamMemberDto>> GetTeamMembersFromJson(
-        IApplicationDbContext context,
-        string membersJson,
-        CancellationToken cancellationToken
-    )
-    {
-        List<Guid> memberIds = JsonSerializer.Deserialize<List<Guid>>(membersJson) ?? new();
-
-        List<EmployeeProfile> employeeProfiles = await context
-            .EmployeeProfiles.Include(ep => ep.User)
-            .Include(ep => ep.Technologies)
-            .ThenInclude(et => et.Technology)
-            .Include(ep => ep.PersonalInterests)
-            .Where(ep => memberIds.Contains(ep.Id))
-            .ToListAsync(cancellationToken);
-
-        return employeeProfiles
-            .Select(ep => new TeamMemberDto(
-                ep.Id,
-                $"{ep.FirstName} {ep.LastName}",
-                ep.User.Role.ToString(),
-                ep.Technologies.Select(t => t.Technology.Name).ToList(),
-                ep.SfiaLevelGeneral,
-                ep.Mbti,
-                ep.PersonalInterests.Select(pi => pi.Name).ToList()
-            ))
-            .ToList();
+        return Result.Success(response);
     }
 }

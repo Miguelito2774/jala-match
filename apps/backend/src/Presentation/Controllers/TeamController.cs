@@ -2,9 +2,12 @@
 using Application.Commands.Teams.Create;
 using Application.Commands.Teams.Delete;
 using Application.Commands.Teams.GenerateTeams;
+using Application.Commands.Teams.MoveTeamMember;
+using Application.Commands.Teams.RemoveTeamMember;
 using Application.DTOs;
 using Application.Queries.Teams.FindTeamMembers;
 using Application.Queries.Teams.GetAll;
+using Application.Queries.Teams.GetAvailableTeamsForMember;
 using Application.Queries.Teams.GetByCreatorId;
 using Application.Queries.Teams.GetById;
 using MediatR;
@@ -150,6 +153,44 @@ public sealed class TeamsController : ControllerBase
         var command = new AddTeamMemberCommand(request.TeamId, request.Members);
 
         Result<TeamResponse> result = await _sender.Send(command);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpDelete("{teamId}/members/{employeeId}")]
+    public async Task<IResult> RemoveTeamMember(Guid teamId, Guid employeeId)
+    {
+        var command = new RemoveTeamMemberCommand(teamId, employeeId);
+        Result<TeamResponse> result = await _sender.Send(command);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpPost("move-member")]
+    public async Task<IResult> MoveTeamMember([FromBody] MoveTeamMemberRequest request)
+    {
+        var command = new MoveTeamMemberCommand(
+            request.SourceTeamId,
+            request.TargetTeamId,
+            request.EmployeeProfileId
+        );
+
+        Result<(TeamResponse SourceTeam, TeamResponse TargetTeam)> result = await _sender.Send(
+            command
+        );
+
+        return result.Match(
+            success => Results.Ok(new { success.SourceTeam, success.TargetTeam }),
+            error => CustomResults.Problem(error)
+        );
+    }
+
+    [HttpGet("available-for-member/{employeeId}")]
+    public async Task<IResult> GetAvailableTeamsForMember(
+        Guid employeeId,
+        [FromQuery] Guid? excludeTeamId = null
+    )
+    {
+        var query = new GetAvailableTeamsForMemberQuery(employeeId, excludeTeamId);
+        Result<List<AvailableTeamDto>> result = await _sender.Send(query);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 

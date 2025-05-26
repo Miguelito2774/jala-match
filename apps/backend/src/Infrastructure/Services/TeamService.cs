@@ -547,4 +547,215 @@ public class TeamService : ITeamService
             );
         }
     }
+
+    public async Task<Result<TeamResponse>> RemoveTeamMember(
+        RemoveTeamMemberRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            Team? team = await _teamRepository.GetByIdAsync(request.TeamId, cancellationToken);
+            if (team == null)
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "Team.NotFound",
+                        $"No se encontró el equipo con ID {request.TeamId}",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            TeamMember? memberToRemove = team.Members.FirstOrDefault(m =>
+                m.EmployeeProfileId == request.EmployeeProfileId
+            );
+
+            if (memberToRemove == null)
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "TeamMember.NotFound",
+                        $"No se encontró el miembro con ID {request.EmployeeProfileId} en el equipo",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            if (memberToRemove.IsLeader)
+            {
+                return Result.Failure<TeamResponse>(
+                    new Error(
+                        "TeamMember.CannotRemoveLeader",
+                        "No se puede eliminar al líder del equipo. Primero debe asignar un nuevo líder",
+                        ErrorType.Validation
+                    )
+                );
+            }
+
+            team.Members.Remove(memberToRemove);
+
+            await _teamRepository.UpdateAsync(team, cancellationToken);
+            await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            return BuildTeamResponse(team);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar miembro del equipo");
+            return Result.Failure<TeamResponse>(
+                new Error(
+                    "Team.RemoveMemberError",
+                    $"Error al eliminar miembro del equipo: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    public async Task<Result<(TeamResponse SourceTeam, TeamResponse TargetTeam)>> MoveTeamMember(
+        MoveTeamMemberRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            Team? sourceTeam = await _teamRepository.GetByIdAsync(
+                request.SourceTeamId,
+                cancellationToken
+            );
+            Team? targetTeam = await _teamRepository.GetByIdAsync(
+                request.TargetTeamId,
+                cancellationToken
+            );
+
+            if (sourceTeam == null)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(
+                    new Error(
+                        "SourceTeam.NotFound",
+                        $"No se encontró el equipo origen con ID {request.SourceTeamId}",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            if (targetTeam == null)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(
+                    new Error(
+                        "TargetTeam.NotFound",
+                        $"No se encontró el equipo destino con ID {request.TargetTeamId}",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            TeamMember? memberToMove = sourceTeam.Members.FirstOrDefault(m =>
+                m.EmployeeProfileId == request.EmployeeProfileId
+            );
+
+            if (memberToMove == null)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(
+                    new Error(
+                        "TeamMember.NotFound",
+                        $"No se encontró el miembro con ID {request.EmployeeProfileId} en el equipo origen",
+                        ErrorType.NotFound
+                    )
+                );
+            }
+
+            if (memberToMove.IsLeader)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(
+                    new Error(
+                        "TeamMember.CannotMoveLeader",
+                        "No se puede mover al líder del equipo. Primero debe asignar un nuevo líder",
+                        ErrorType.Validation
+                    )
+                );
+            }
+
+            if (targetTeam.Members.Any(m => m.EmployeeProfileId == request.EmployeeProfileId))
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(
+                    new Error(
+                        "TeamMember.AlreadyExists",
+                        "El miembro ya pertenece al equipo destino",
+                        ErrorType.Validation
+                    )
+                );
+            }
+
+            var newMember = new TeamMember
+            {
+                Id = Guid.NewGuid(),
+                TeamId = request.TargetTeamId,
+                EmployeeProfileId = memberToMove.EmployeeProfileId,
+                Name = memberToMove.Name,
+                Role = memberToMove.Role,
+                SfiaLevel = memberToMove.SfiaLevel,
+                IsLeader = false,
+            };
+
+            sourceTeam.Members.Remove(memberToMove);
+            targetTeam.Members.Add(newMember);
+
+            // Actualizar ambos equipos
+            await _teamRepository.UpdateAsync(sourceTeam, cancellationToken);
+            await _teamRepository.UpdateAsync(targetTeam, cancellationToken);
+            await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            Result<TeamResponse> sourceTeamResponse = BuildTeamResponse(sourceTeam);
+            Result<TeamResponse> targetTeamResponse = BuildTeamResponse(targetTeam);
+
+            return Result.Success((sourceTeamResponse.Value, targetTeamResponse.Value));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al mover miembro entre equipos");
+            return Result.Failure<(TeamResponse, TeamResponse)>(
+                new Error(
+                    "Team.MoveMemberError",
+                    $"Error al mover miembro entre equipos: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
+    private Result<TeamResponse> BuildTeamResponse(Team team)
+    {
+        return Result.Success(
+            new TeamResponse
+            {
+                TeamId = team.Id,
+                Name = team.Name,
+                CreatorId = team.CreatorId,
+                CompatibilityScore = team.CompatibilityScore,
+                Members = team
+                    .Members.Select(m => new TeamMemberDto(
+                        m.EmployeeProfileId,
+                        m.Name,
+                        m.Role,
+                        m.SfiaLevel,
+                        m.IsLeader
+                    ))
+                    .ToList(),
+                RequiredTechnologies = team
+                    .RequiredTechnologies.Select(rt => rt.Technology.Name)
+                    .ToList(),
+                Analysis = JsonSerializer.Deserialize<AiTeamAnalysis?>(
+                    team.AiAnalysis ?? "{}",
+                    _jsonOptions
+                ),
+                Weights = JsonSerializer.Deserialize<WeightCriteria>(
+                    team.WeightCriteria ?? "{}",
+                    _jsonOptions
+                ),
+                IsActive = team.IsActive,
+            }
+        );
+    }
 }

@@ -31,4 +31,14 @@ public interface ITeamService
         TeamMemberUpdateRequest request,
         CancellationToken cancellationToken
     );
+
+    Task<Result<TeamResponse>> RemoveTeamMember(
+        RemoveTeamMemberRequest request,
+        CancellationToken cancellationToken
+    );
+
+    Task<Result<(TeamResponse SourceTeam, TeamResponse TargetTeam)>> MoveTeamMember(
+        MoveTeamMemberRequest request,
+        CancellationToken cancellationToken
+    );
 }

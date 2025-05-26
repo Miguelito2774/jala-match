@@ -6,6 +6,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 
 import { AddTeamMemberComponent } from '@/components/organisms/teams/AddMemberDialog';
+import { TeamMemberActionsDialog } from '@/components/organisms/teams/TeamMemberActionsDialog';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import {
   AlertDialog,
@@ -16,6 +17,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +26,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Team, useTeams } from '@/hooks/useTeams';
+import { useTeamMemberActions } from '@/hooks/useTeamMemberActions';
+import { Team, TeamMember, useTeams } from '@/hooks/useTeams';
 
-import { AlertCircle, ArrowLeft, BarChart, CheckCircle, Code, Crown, Info, Trash2, Users } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  BarChart,
+  CheckCircle,
+  Code,
+  Crown,
+  Info,
+  Move,
+  Trash2,
+  UserMinus,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TeamPageProps {
@@ -39,11 +54,19 @@ export default function TeamPage({ params }: TeamPageProps) {
   const router = useRouter();
   const { getTeamById, deleteTeam, loading, error } = useTeams();
   const [team, setTeam] = useState<Team | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const {
+    dialogState,
+    loading: memberActionsLoading,
+    openRemoveDialog,
+    openMoveDialog,
+    closeDialog,
+    handleRemoveMember,
+    handleMoveMember,
+    getAvailableTeamsForMove,
+  } = useTeamMemberActions(team);
   const unwrappedParams = React.use(params);
   const { teamId } = unwrappedParams;
 
-  // Refresh team data after adding members
   const handleMembersAdded = async () => {
     try {
       const updated = await getTeamById(teamId);
@@ -51,6 +74,10 @@ export default function TeamPage({ params }: TeamPageProps) {
     } catch {
       toast.error('Error al recargar datos del equipo');
     }
+  };
+
+  const handleMemberActionComplete = async () => {
+    await handleMembersAdded();
   };
 
   useEffect(() => {
@@ -85,7 +112,16 @@ export default function TeamPage({ params }: TeamPageProps) {
         toast.error('No se pudo eliminar el equipo. Por favor, inténtalo de nuevo.');
       }
     }
-    setShowDeleteDialog(false);
+  };
+
+  // Open remove-dialog for a member
+  const openRemove = (member: TeamMember) => {
+    if (team) openRemoveDialog(member);
+  };
+
+  // Open move-dialog for a member
+  const openMove = (member: TeamMember) => {
+    if (team) openMoveDialog(member);
   };
 
   const getInitials = (name: string) =>
@@ -135,18 +171,35 @@ export default function TeamPage({ params }: TeamPageProps) {
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Button>
-          <div className="flex gap-2">
-            <AddTeamMemberComponent teamId={teamId} onMembersAdded={handleMembersAdded} />
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              Eliminar equipo
-            </Button>
-          </div>
+          <AlertDialog>
+            <div className="flex gap-2">
+              <AddTeamMemberComponent teamId={teamId} onMembersAdded={handleMembersAdded} />
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar equipo
+                </Button>
+              </AlertDialogTrigger>
+            </div>
+            <AlertDialogContent className="max-w-md bg-white">
+              <AlertDialogHeader className="text-center">
+                <AlertDialogTitle className="text-lg">Eliminar equipo</AlertDialogTitle>
+                <AlertDialogDescription className="mt-2">
+                  ¿Estás seguro de que deseas eliminar permanentemente el equipo &quot;{team?.name}&quot;? Esta acción
+                  no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2 sm:gap-2">
+                <AlertDialogCancel className="flex-1">Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="flex-1 bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                  onClick={handleDelete}
+                >
+                  {loading ? 'Eliminando...' : 'Eliminar'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="mb-8">
@@ -205,9 +258,7 @@ export default function TeamPage({ params }: TeamPageProps) {
           </CardContent>
         </Card>
 
-        {/* Diseño de cuadrícula reorganizada */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          {/* Miembros del Equipo - ocupa 7 de 12 columnas */}
           <Card className="lg:col-span-7">
             <CardHeader>
               <CardTitle className="text-lg">Miembros del Equipo</CardTitle>
@@ -246,9 +297,33 @@ export default function TeamPage({ params }: TeamPageProps) {
                   <div className="flex-grow">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-lg font-semibold">{member.name}</h3>
-                      <Badge variant={member.isLeader ? 'default' : 'outline'} className="my-1 sm:my-0 sm:ml-2">
-                        {member.role}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={member.isLeader ? 'default' : 'outline'} className="my-1 sm:my-0">
+                          {member.role}
+                        </Badge>
+
+                        {/* Only show action buttons for non-leaders */}
+                        {!member.isLeader && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openMove(member)}
+                              title="Mover a otro equipo"
+                            >
+                              <Move className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openRemove(member)}
+                              title="Eliminar del equipo"
+                            >
+                              <UserMinus className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="mt-1 flex items-center">
                       <span className="mr-2 text-sm text-gray-600">Nivel SFIA:</span>
@@ -262,9 +337,7 @@ export default function TeamPage({ params }: TeamPageProps) {
             </CardContent>
           </Card>
 
-          {/* Columna derecha - análisis y pesos */}
           <div className="space-y-6 lg:col-span-5">
-            {/* Análisis del Equipo */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Análisis del Equipo</CardTitle>
@@ -311,7 +384,6 @@ export default function TeamPage({ params }: TeamPageProps) {
               </CardContent>
             </Card>
 
-            {/* Distribución de Pesos */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Distribución de Pesos</CardTitle>
@@ -343,22 +415,16 @@ export default function TeamPage({ params }: TeamPageProps) {
           </div>
         </div>
 
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent className="bg-white">
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción eliminará permanentemente el equipo &quot;{team.name}&quot; y no se puede deshacer.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                Eliminar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <TeamMemberActionsDialog
+          dialogState={dialogState}
+          loading={memberActionsLoading}
+          closeDialog={closeDialog}
+          handleRemoveMember={handleRemoveMember}
+          handleMoveMember={handleMoveMember}
+          getAvailableTeamsForMove={getAvailableTeamsForMove}
+          onMemberRemoved={handleMemberActionComplete}
+          onMemberMoved={handleMemberActionComplete}
+        />
       </div>
     </DashboardLayout>
   );

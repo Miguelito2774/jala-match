@@ -197,3 +197,31 @@ public class AiReanalysisResponse
     public string DetailedAnalysis { get; set; }
     public List<string> Recommendations { get; set; }
 }
+
+public class RemoveTeamMemberRequest
+{
+    public Guid TeamId { get; set; }
+    public Guid EmployeeProfileId { get; set; }
+}
+
+public class MoveTeamMemberRequest
+{
+    public Guid SourceTeamId { get; set; }
+    public Guid TargetTeamId { get; set; }
+    public Guid EmployeeProfileId { get; set; }
+}
+
+public class AvailableTeamDto
+{
+    public Guid TeamId { get; set; }
+    public string Name { get; set; }
+    public int CurrentMemberCount { get; set; }
+    public bool HasMember { get; set; }
+    public string CreatorName { get; set; }
+}
+
+public class GetAvailableTeamsForMemberRequest
+{
+    public Guid EmployeeProfileId { get; set; }
+    public Guid? ExcludeTeamId { get; set; }
+}

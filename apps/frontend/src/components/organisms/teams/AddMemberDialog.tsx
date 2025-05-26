@@ -229,7 +229,7 @@ export const AddTeamMemberComponent = ({ teamId, onMembersAdded }: AddTeamMember
           <span>Nuevos miembros</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="ml-[-1rem] max-w-[95vw] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Añadir nuevos miembros al equipo</DialogTitle>
         </DialogHeader>

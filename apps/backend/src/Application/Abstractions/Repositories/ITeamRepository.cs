@@ -1,4 +1,3 @@
-using System.Globalization;
 using Domain.Entities.Teams;
 
 namespace Application.Abstractions.Repositories;
@@ -11,6 +10,5 @@ public interface ITeamRepository
     Task<Team?> GetByIdAsync(Guid id, CancellationToken ct);
     Task DeleteAsync(Team team, CancellationToken ct);
     Task<List<Team>> GetAllAsync(CancellationToken ct);
-
     Task<List<Team>> GetByCreatorIdAsync(Guid creatorId, CancellationToken ct);
 }

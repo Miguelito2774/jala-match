@@ -17,7 +17,7 @@ public class EmployeeProfile : Entity
     public required string Timezone { get; set; }
     public required int SfiaLevelGeneral { get; set; }
     public required string Mbti { get; set; }
-    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.NotRequested;
 
     public string? VerificationNotes { get; set; }
     public User User { get; set; }

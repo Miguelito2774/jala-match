@@ -74,6 +74,21 @@ public sealed class RequestProfileVerificationCommandHandler
         // Update verification status to pending
         profile.VerificationStatus = Domain.Entities.Enums.VerificationStatus.Pending;
 
+        // Create a verification request record
+        var verificationRequest = new ProfileVerification
+        {
+            Id = Guid.NewGuid(),
+            EmployeeProfileId = profile.Id,
+            ReviewerId = null,
+            SfiaProposed = profile.SfiaLevelGeneral, // Agregar el nivel SFIA propuesto
+            Status = Domain.Entities.Enums.VerificationStatus.Pending,
+            RequestedAt = DateTime.UtcNow,
+            ReviewedAt = null,
+            EmployeeProfile = profile,
+            Reviewer = null,
+        };
+
+        _context.ProfileVerifications.Add(verificationRequest);
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

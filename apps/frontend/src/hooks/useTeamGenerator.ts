@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useAuth } from '@/contexts/AuthContext';
+
 interface TeamGeneratorParams {
   CreatorId: string;
   TeamSize: number;
@@ -57,6 +59,7 @@ export interface GeneratedTeamResponse {
 }
 
 export const useTeamGenerator = () => {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedTeam, setGeneratedTeam] = useState<GeneratedTeamResponse | null>(null);
@@ -70,6 +73,7 @@ export const useTeamGenerator = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(params),
       });

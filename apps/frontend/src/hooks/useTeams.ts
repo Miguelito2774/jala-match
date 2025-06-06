@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useAuth } from '@/contexts/AuthContext';
+
 export interface TeamMember {
   employeeProfileId: string;
   name: string;
@@ -63,6 +65,7 @@ export interface AvailableTeamForMove {
 }
 
 export const useTeams = () => {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -70,6 +73,11 @@ export const useTeams = () => {
   const [availableTeamsForMove, setAvailableTeamsForMove] = useState<AvailableTeamForMove[]>([]);
 
   const apiBaseUrl = 'http://localhost:5001/api/teams';
+
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
   const handleError = useCallback((error: unknown) => {
     if (error instanceof Error) {
@@ -85,6 +93,7 @@ export const useTeams = () => {
       try {
         const response = await fetch(`${apiBaseUrl}/all`, {
           signal: abortController?.signal,
+          headers: { ...authHeaders },
         });
 
         if (!response.ok) throw new Error(`Error: ${response.status}`);
@@ -99,7 +108,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError],
+    [apiBaseUrl, handleError, token],
   );
 
   const createTeam = useCallback(
@@ -108,7 +117,7 @@ export const useTeams = () => {
       try {
         const response = await fetch(`${apiBaseUrl}/create`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...authHeaders },
           body: JSON.stringify(teamData),
         });
 
@@ -125,14 +134,16 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError],
+    [apiBaseUrl, handleError, token],
   );
 
   const getTeamById = useCallback(
     async (teamId: string): Promise<Team | null> => {
       setLoading(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/by-id/${teamId}`);
+        const response = await fetch(`${apiBaseUrl}/by-id/${teamId}`, {
+          headers: { ...authHeaders },
+        });
 
         if (!response.ok) throw new Error(`Error: ${response.status}`);
 
@@ -146,7 +157,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError],
+    [apiBaseUrl, handleError, token],
   );
 
   const deleteTeam = useCallback(
@@ -155,6 +166,7 @@ export const useTeams = () => {
       try {
         const response = await fetch(`${apiBaseUrl}/${teamId}`, {
           method: 'DELETE',
+          headers: { ...authHeaders },
         });
 
         if (!response.ok) throw new Error(`Error: ${response.status}`);
@@ -169,7 +181,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError],
+    [apiBaseUrl, handleError, token],
   );
 
   const removeTeamMember = useCallback(
@@ -178,15 +190,15 @@ export const useTeams = () => {
       try {
         const response = await fetch(`${apiBaseUrl}/${teamId}/members/${employeeId}`, {
           method: 'DELETE',
+          headers: { ...authHeaders },
         });
 
         if (!response.ok) throw new Error(`Error: ${response.status}`);
 
-        // Update local state
         if (currentTeam && currentTeam.teamId === teamId) {
           const updatedTeam = {
             ...currentTeam,
-            members: currentTeam.members.filter((member) => member.employeeProfileId !== employeeId),
+            members: currentTeam.members.filter((m) => m.employeeProfileId !== employeeId),
           };
           setCurrentTeam(updatedTeam);
         }
@@ -194,7 +206,7 @@ export const useTeams = () => {
         setTeams((prev) =>
           prev.map((team) =>
             team.teamId === teamId
-              ? { ...team, members: team.members.filter((member) => member.employeeProfileId !== employeeId) }
+              ? { ...team, members: team.members.filter((m) => m.employeeProfileId !== employeeId) }
               : team,
           ),
         );
@@ -207,7 +219,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, currentTeam],
+    [apiBaseUrl, handleError, currentTeam, token],
   );
 
   const moveTeamMember = useCallback(
@@ -216,7 +228,7 @@ export const useTeams = () => {
       try {
         const response = await fetch(`${apiBaseUrl}/move-member`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...authHeaders },
           body: JSON.stringify(request),
         });
 
@@ -224,20 +236,14 @@ export const useTeams = () => {
 
         const data = await response.json();
 
-        // Update local state with both updated teams
         setTeams((prev) =>
           prev.map((team) => {
-            if (team.teamId === data.sourceTeam.teamId) {
-              return data.sourceTeam;
-            }
-            if (team.teamId === data.targetTeam.teamId) {
-              return data.targetTeam;
-            }
+            if (team.teamId === data.sourceTeam.teamId) return data.sourceTeam;
+            if (team.teamId === data.targetTeam.teamId) return data.targetTeam;
             return team;
           }),
         );
 
-        // Update current team if it's one of the affected teams
         if (currentTeam) {
           if (currentTeam.teamId === data.sourceTeam.teamId) {
             setCurrentTeam(data.sourceTeam);
@@ -254,7 +260,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, currentTeam],
+    [apiBaseUrl, handleError, currentTeam, token],
   );
 
   const getAvailableTeamsForMember = useCallback(
@@ -262,20 +268,18 @@ export const useTeams = () => {
       setLoading(true);
       try {
         const url = new URL(`${apiBaseUrl}/available-for-member/${employeeId}`);
-        if (excludeTeamId) {
-          url.searchParams.append('excludeTeamId', excludeTeamId);
-        }
+        if (excludeTeamId) url.searchParams.append('excludeTeamId', excludeTeamId);
 
-        const response = await fetch(url.toString());
+        const response = await fetch(url.toString(), {
+          headers: { ...authHeaders },
+        });
 
         if (!response.ok) throw new Error(`Error: ${response.status}`);
 
         const data: AvailableTeamForMove[] = await response.json();
-
-        const filteredData = data.filter((team) => !team.hasMember);
-
-        setAvailableTeamsForMove(filteredData);
-        return filteredData;
+        const filtered = data.filter((team) => !team.hasMember);
+        setAvailableTeamsForMove(filtered);
+        return filtered;
       } catch (err) {
         handleError(err);
         return [];
@@ -283,7 +287,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError],
+    [apiBaseUrl, handleError, token],
   );
 
   useEffect(() => {

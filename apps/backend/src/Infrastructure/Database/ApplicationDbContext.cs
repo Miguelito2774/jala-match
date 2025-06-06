@@ -1,5 +1,6 @@
 using Application.Abstractions.Data;
 using Domain.Entities.Areas_Roles;
+using Domain.Entities.Invitations;
 using Domain.Entities.Profiles;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
@@ -32,6 +33,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<SpecializedRoleSkill> SpecializedRoleSkills => Set<SpecializedRoleSkill>();
     public DbSet<TechnicalArea> TechnicalAreas => Set<TechnicalArea>();
     public DbSet<RecommendedMember> RecommendedMembers => Set<RecommendedMember>();
+    public DbSet<InvitationLink> InvitationLinks => Set<InvitationLink>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

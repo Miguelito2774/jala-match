@@ -1,4 +1,5 @@
-﻿using Application.Commands.Teams.AddTeamMember;
+﻿using System.Security.Claims;
+using Application.Commands.Teams.AddTeamMember;
 using Application.Commands.Teams.Create;
 using Application.Commands.Teams.Delete;
 using Application.Commands.Teams.GenerateTeams;
@@ -11,6 +12,7 @@ using Application.Queries.Teams.GetAvailableTeamsForMember;
 using Application.Queries.Teams.GetByCreatorId;
 using Application.Queries.Teams.GetById;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Extensions;
 using Presentation.Infrastructure;
@@ -20,11 +22,18 @@ namespace Presentation.Controllers;
 
 [ApiController]
 [Route("api/teams")]
+[Authorize]
 public sealed class TeamsController : ControllerBase
 {
     private readonly ISender _sender;
-    private static readonly string[] item = new[] { "Junior", "Staff", "Senior", "Architect" };
-    private static readonly string[] itemArray = new[]
+    private static readonly string[] SfiaLevels = new[]
+    {
+        "Junior",
+        "Staff",
+        "Senior",
+        "Architect",
+    };
+    private static readonly string[] DeveloperAreas = new[]
     {
         "Web Development",
         "Mobile Development",
@@ -32,28 +41,33 @@ public sealed class TeamsController : ControllerBase
         "Frontend Development",
         "DevOps & Infrastructure",
     };
-    private static readonly string[] itemArray0 = new[]
+    private static readonly string[] QAAutomationAreas = new[]
     {
         "Test Automation",
         "Performance Testing",
         "Security Testing",
         "Scripting",
     };
-    private static readonly string[] itemArray1 = new[]
+    private static readonly string[] QAManualAreas = new[]
     {
         "Functional Testing",
         "Exploratory Testing",
         "Regression Testing",
     };
-    private static readonly string[] itemArray2 = new[]
+    private static readonly string[] DesignerAreas = new[]
     {
         "User Research",
         "Wireframing",
         "Visual Design",
         "Interaction Design",
     };
-    private static readonly string[] itemArray3 = new[] { "Data Pipelines", "ETL", "Big Data" };
-    private static readonly string[] itemArray4 = new[]
+    private static readonly string[] DataEngineerAreas = new[]
+    {
+        "Data Pipelines",
+        "ETL",
+        "Big Data",
+    };
+    private static readonly string[] DataScientistAreas = new[]
     {
         "Machine Learning",
         "Data Analysis",
@@ -66,10 +80,13 @@ public sealed class TeamsController : ControllerBase
     }
 
     [HttpPost("generate")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> GenerateTeams([FromBody] GenerateTeamsRequest request)
     {
+        Guid currentUserId = GetCurrentUserId();
+
         var command = new GenerateTeamsCommand(
-            request.CreatorId,
+            currentUserId,
             request.TeamSize,
             request.Requirements,
             request.SfiaLevel,
@@ -78,16 +95,18 @@ public sealed class TeamsController : ControllerBase
         );
 
         Result<AiServiceResponse> result = await _sender.Send(command);
-
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     [HttpPost("create")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> CreateTeam([FromBody] CreateTeamsRequest request)
     {
+        Guid currentUserId = GetCurrentUserId();
+
         var command = new CreateTeamCommand(
             request.Name,
-            request.CreatorId,
+            currentUserId,
             request.Members,
             request.LeaderId,
             request.Analysis,
@@ -101,6 +120,7 @@ public sealed class TeamsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> DeleteTeam(Guid id)
     {
         var command = new DeleteTeamCommand(id);
@@ -119,20 +139,40 @@ public sealed class TeamsController : ControllerBase
     [HttpGet("all")]
     public async Task<IResult> GetAllTeams()
     {
-        var query = new GetAllTeamsQuery();
+        Guid currentUserId = GetCurrentUserId();
+        string userRole = GetCurrentUserRole();
+
+        if (userRole == "Admin")
+        {
+            var adminQuery = new GetAllTeamsQuery();
+            Result<List<TeamResponse>> adminResult = await _sender.Send(adminQuery);
+            return adminResult.Match(Results.Ok, error => CustomResults.Problem(error));
+        }
+
+        var query = new GetTeamsByCreatorIdQuery(currentUserId);
         Result<List<TeamResponse>> result = await _sender.Send(query);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     [HttpGet("by-creator/{creatorId}")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<IResult> GetTeamsByCreatorId(Guid creatorId)
     {
+        Guid currentUserId = GetCurrentUserId();
+        string userRole = GetCurrentUserRole();
+
+        if (userRole == "Manager" && creatorId != currentUserId)
+        {
+            return Results.Forbid();
+        }
+
         var query = new GetTeamsByCreatorIdQuery(creatorId);
         Result<List<TeamResponse>> result = await _sender.Send(query);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     [HttpPost("find")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> FindTeamMembers([FromBody] FindTeamMemberRequest request)
     {
         var query = new FindTeamMembersQuery(
@@ -148,15 +188,16 @@ public sealed class TeamsController : ControllerBase
     }
 
     [HttpPost("add")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> AddTeamMember([FromBody] TeamMemberUpdateRequest request)
     {
         var command = new AddTeamMemberCommand(request.TeamId, request.Members);
-
         Result<TeamResponse> result = await _sender.Send(command);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     [HttpDelete("{teamId}/members/{employeeId}")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> RemoveTeamMember(Guid teamId, Guid employeeId)
     {
         var command = new RemoveTeamMemberCommand(teamId, employeeId);
@@ -165,6 +206,7 @@ public sealed class TeamsController : ControllerBase
     }
 
     [HttpPost("move-member")]
+    [Authorize(Roles = "Manager")]
     public async Task<IResult> MoveTeamMember([FromBody] MoveTeamMemberRequest request)
     {
         var command = new MoveTeamMemberCommand(
@@ -189,12 +231,14 @@ public sealed class TeamsController : ControllerBase
         [FromQuery] Guid? excludeTeamId = null
     )
     {
-        var query = new GetAvailableTeamsForMemberQuery(employeeId, excludeTeamId);
+        Guid currentUserId = GetCurrentUserId();
+        var query = new GetAvailableTeamsForMemberQuery(employeeId, currentUserId, excludeTeamId);
         Result<List<AvailableTeamDto>> result = await _sender.Send(query);
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     [HttpGet("available-roles")]
+    [Authorize]
     public Task<IResult> GetAvailableRoles()
     {
         var roles = new List<object>
@@ -202,38 +246,38 @@ public sealed class TeamsController : ControllerBase
             new
             {
                 Role = "Developer",
-                Areas = itemArray,
-                Levels = item,
+                Areas = DeveloperAreas,
+                Levels = SfiaLevels,
             },
             new
             {
                 Role = "QA Automation",
-                Areas = itemArray0,
-                Levels = item,
+                Areas = QAAutomationAreas,
+                Levels = SfiaLevels,
             },
             new
             {
                 Role = "QA Manual",
-                Areas = itemArray1,
-                Levels = item,
+                Areas = QAManualAreas,
+                Levels = SfiaLevels,
             },
             new
             {
                 Role = "UX/UI Designer",
-                Areas = itemArray2,
-                Levels = item,
+                Areas = DesignerAreas,
+                Levels = SfiaLevels,
             },
             new
             {
                 Role = "Data Engineer",
-                Areas = itemArray3,
-                Levels = item,
+                Areas = DataEngineerAreas,
+                Levels = SfiaLevels,
             },
             new
             {
                 Role = "Data Scientist",
-                Areas = itemArray4,
-                Levels = item,
+                Areas = DataScientistAreas,
+                Levels = SfiaLevels,
             },
         };
 
@@ -290,5 +334,24 @@ public sealed class TeamsController : ControllerBase
         };
 
         return Task.FromResult(Results.Ok(criteria));
+    }
+
+    private Guid GetCurrentUserId()
+    {
+        string? userIdClaim =
+            User.FindFirst("userId")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+        {
+            throw new UnauthorizedAccessException("Usuario no autenticado correctamente");
+        }
+
+        return userId;
+    }
+
+    private string GetCurrentUserRole()
+    {
+        return User.FindFirst(ClaimTypes.Role)?.Value
+            ?? throw new UnauthorizedAccessException("Rol de usuario no encontrado");
     }
 }

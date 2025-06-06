@@ -280,6 +280,16 @@ export const ProfileSections = () => {
                 Completar Perfil
               </Button>
             )}
+            {profile &&
+              (profile.verificationStatus === 0 ||
+                (profile.verificationStatus !== 1 &&
+                  profile.verificationStatus !== 2 &&
+                  profile.verificationStatus !== 3)) &&
+              allSectionsCompleted && (
+                <Button onClick={handleVerificationRequest} disabled={isRequesting}>
+                  {isRequesting ? 'Solicitando...' : 'Solicitar Verificación'}
+                </Button>
+              )}
           </div>
         </div>
       </div>

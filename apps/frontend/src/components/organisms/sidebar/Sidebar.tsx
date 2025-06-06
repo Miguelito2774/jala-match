@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
-import { Home, LogOut, Mail, Menu, Settings, UserCircle, Users, Wrench, X } from 'lucide-react';
+import { HelpCircle, LogOut, Mail, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
 
 import { SidebarItem } from './SidebarItem';
 
@@ -21,19 +21,19 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   // Rutas de empleado
   {
-    href: '/employee/dashboard',
-    icon: Home,
-    label: 'Dashboard',
-    roles: ['Employee'],
-  },
-  {
     href: 'profile',
     icon: UserCircle,
     label: 'Mi Perfil',
     roles: ['Employee'],
   },
   {
-    href: '/employee/teams',
+    href: '/verifications',
+    icon: Shield,
+    label: 'Mis Verificaciones',
+    roles: ['Employee'],
+  },
+  {
+    href: '/my-teams',
     icon: Users,
     label: 'Mis Equipos',
     roles: ['Employee'],
@@ -41,15 +41,21 @@ const NAV_ITEMS: NavItem[] = [
 
   // Rutas de manager
   {
+    href: '/teams',
+    icon: Users,
+    label: 'Mis Equipos',
+    roles: ['Manager'],
+  },
+  {
     href: '/team-builder',
     icon: Wrench,
     label: 'Generador de Equipos',
     roles: ['Manager'],
   },
   {
-    href: '/teams',
-    icon: Users,
-    label: 'Mis Equipos',
+    href: '/profile-verifications',
+    icon: UserCircle,
+    label: 'Verificar Perfiles',
     roles: ['Manager'],
   },
 
@@ -170,6 +176,16 @@ export const Sidebar = () => {
                 />
               ))}
             </nav>
+
+            {/* FAQ Link */}
+            <div className="px-2 pb-2">
+              <SidebarItem
+                href="/faq"
+                icon={HelpCircle}
+                label="Preguntas Frecuentes"
+                onNavigate={() => setIsOpen(false)}
+              />
+            </div>
 
             {/* Logout button */}
             <div className="px-2 pb-4">

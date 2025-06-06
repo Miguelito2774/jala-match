@@ -10,8 +10,7 @@ public class EmployeeSpecializedRole : Entity
     public required Guid SpecializedRoleId { get; set; }
     public required ExperienceLevel Level { get; set; }
     public required int YearsExperience { get; set; }
-    
-    public required EmployeeProfile EmployeeProfile { get; set; }
-    public required SpecializedRole SpecializedRole { get; set; }
-}
 
+    public EmployeeProfile EmployeeProfile { get; set; }
+    public SpecializedRole SpecializedRole { get; set; }
+}

@@ -11,9 +11,8 @@ public class EmployeeTechnology : Entity
     public required int SfiaLevel { get; set; } // 1-7
     public required decimal YearsExperience { get; set; }
     public required string Version { get; set; }
-    public required ExperienceLevel ExperienceLevel { get; set; }
 
     // Navigation
-    public required EmployeeProfile EmployeeProfile { get; set; }
-    public required Technology Technology { get; set; }
+    public EmployeeProfile EmployeeProfile { get; set; }
+    public Technology Technology { get; set; }
 }

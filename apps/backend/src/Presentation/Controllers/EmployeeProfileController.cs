@@ -9,6 +9,7 @@ using Application.Queries.EmployeeProfiles.GeneralInformation;
 using Application.Queries.EmployeeProfiles.RolesAndAreas;
 using Application.Queries.EmployeeProfiles.SpecializedRoles;
 using Application.Queries.EmployeeProfiles.TechnicalProfile;
+using Application.Queries.EmployeeProfiles.Verifications;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +59,15 @@ public sealed class EmployeeProfileController(ISender sender) : ControllerBase
     {
         var query = new GetAvailableRolesAndAreasQuery();
         Result<AvailableRolesAndAreasResponse> result = await sender.Send(query, cancellationToken);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("user/{userId:guid}/verification-history")]
+    [Authorize(Roles = "Employee")]
+    public async Task<IResult> GetVerificationHistory(Guid userId, CancellationToken cancellationToken)
+    {
+        var query = new GetEmployeeVerificationHistoryQuery(userId);
+        Result<List<ProfileVerificationDto>> result = await sender.Send(query, cancellationToken);
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 

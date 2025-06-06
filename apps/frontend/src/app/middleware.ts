@@ -81,7 +81,7 @@ function getDashboardForRole(role: string): string {
     case 'Employee':
       return '/employee/profile';
     case 'Manager':
-      return '/manager/team-builder';
+      return '/teams';
     case 'Admin':
       return '/admin/invitations';
     default:

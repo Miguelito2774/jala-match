@@ -98,7 +98,7 @@ public sealed class AuthService : IAuthService
             Technologies = [],
             WorkExperiences = [],
             PersonalInterests = [],
-            VerificationStatus = VerificationStatus.Pending,
+            VerificationStatus = VerificationStatus.NotRequested,
             VerificationNotes = null,
         };
 

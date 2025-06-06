@@ -242,14 +242,6 @@ public record PersonalInterestImportDto
     public int? InterestLevel { get; init; }
 }
 
-public record ProfileVerificationStatusDto
-{
-    public VerificationStatus Status { get; init; }
-    public string? Notes { get; init; }
-    public bool CanRequestVerification { get; init; }
-    public List<string> MissingRequirements { get; init; } = new();
-}
-
 public record UpdateEmployeeTechnologyRequest
 {
     public int SfiaLevel { get; init; }
@@ -285,4 +277,25 @@ public record UpdateEmployeeSpecializedRoleRequest
 {
     public ExperienceLevel Level { get; init; }
     public int YearsExperience { get; init; }
+}
+
+// DTOs para Verificaciones de Perfil
+public record ProfileVerificationDto
+{
+    public Guid Id { get; init; }
+    public int SfiaProposed { get; init; }
+    public VerificationStatus Status { get; init; }
+    public string? Notes { get; init; }
+    public DateTime RequestedAt { get; init; }
+    public DateTime? ReviewedAt { get; init; }
+    public string? ReviewerName { get; init; }
+    public string? ReviewerEmail { get; init; }
+}
+
+public record ProfileVerificationStatusDto
+{
+    public VerificationStatus Status { get; init; }
+    public string? Notes { get; init; }
+    public DateTime? ReviewedAt { get; init; }
+    public bool HasPendingRequest { get; init; }
 }

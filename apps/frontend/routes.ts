@@ -16,7 +16,7 @@ export const ROUTES = {
 
   // Rutas de manager (sin segment prefix en URL)
   MANAGER: {
-    DASHBOARD: '/team-builder',
+    DASHBOARD: '/teams',
     TEAM_BUILDER: '/team-builder',
     TEAM_LIST: '/teams',
     TEAM_DETAIL: '/teams/[teamId]',
@@ -41,7 +41,7 @@ export const ROUTES = {
 // Mapeo de roles a rutas de dashboard por defecto
 export const DEFAULT_DASHBOARD_ROUTES = {
   Employee: ROUTES.EMPLOYEE.DASHBOARD,
-  Manager: ROUTES.MANAGER.TEAM_BUILDER, // Cambiado a team-builder como dashboard principal
+  Manager: ROUTES.MANAGER.DASHBOARD, // Cambiado a teams como dashboard principal
   Admin: ROUTES.ADMIN.INVITATIONS,
 } as const;
 

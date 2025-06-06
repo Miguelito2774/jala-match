@@ -9,6 +9,8 @@ import { ChevronDown, X } from 'lucide-react';
 interface SelectOption<T = any> {
   value: T;
   label: string;
+  // Allow additional properties such as flags or city names
+  [key: string]: any;
 }
 
 type SelectProps<T> = {
@@ -20,6 +22,7 @@ type SelectProps<T> = {
   placeholder?: string;
   value?: SelectOption<T> | SelectOption<T>[];
   isDisabled?: boolean;
+  formatOptionLabel?: (option: SelectOption<T>) => React.ReactNode;
 };
 
 export const Select = <T,>({
@@ -31,6 +34,7 @@ export const Select = <T,>({
   placeholder,
   value,
   isDisabled = false,
+  formatOptionLabel,
 }: SelectProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<SelectOption<T> | null>(
@@ -81,7 +85,7 @@ export const Select = <T,>({
                   key={`selected-${item.value}`}
                   className="bg-primary/10 text-primary inline-flex items-center rounded px-2 py-1 text-xs"
                 >
-                  {item.label}
+                  {formatOptionLabel ? formatOptionLabel(item) : item.label}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -99,15 +103,22 @@ export const Select = <T,>({
             ) : (
               <span className="text-gray-400">{placeholder || 'Seleccionar...'}</span>
             )
+          ) : // Single select: if no current value, show placeholder, else show formatted label
+          (currentValue as SelectOption<T>) ? (
+            <>
+              {formatOptionLabel
+                ? formatOptionLabel(currentValue as SelectOption<T>)
+                : (currentValue as SelectOption<T>).label}
+            </>
           ) : (
-            <span>{(currentValue as SelectOption<T>)?.label || placeholder || 'Seleccionar...'}</span>
+            <span className="text-gray-400">{placeholder || 'Seleccionar...'}</span>
           )}
         </div>
         <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', isOpen && 'rotate-180 transform')} />
       </div>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
           {options.map((option, index) => {
             const isSelected = isMulti
               ? (currentValue as SelectOption<T>[]).some((item) => item.value === option.value)
@@ -119,7 +130,7 @@ export const Select = <T,>({
                 className={cn('cursor-pointer px-3 py-2 hover:bg-gray-100', isSelected && 'bg-primary/10 text-primary')}
                 onClick={() => handleSelect(option)}
               >
-                {option.label}
+                {formatOptionLabel ? formatOptionLabel(option) : option.label}
               </div>
             );
           })}

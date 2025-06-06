@@ -1,4 +1,3 @@
-using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
 
 namespace Application.Abstractions.Repositories;

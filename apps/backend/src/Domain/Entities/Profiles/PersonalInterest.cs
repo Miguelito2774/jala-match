@@ -10,5 +10,5 @@ public class PersonalInterest : Entity
     public string? Frequency { get; set; }
     public int? InterestLevel { get; set; }
 
-    public required EmployeeProfile EmployeeProfile { get; set; }
+    public EmployeeProfile EmployeeProfile { get; set; }
 }

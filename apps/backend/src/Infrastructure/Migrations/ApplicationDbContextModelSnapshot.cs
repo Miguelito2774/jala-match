@@ -38,8 +38,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int>("Level")
-                        .HasColumnType("integer")
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("level");
 
                     b.Property<int>("YearsExperience")
@@ -132,6 +134,65 @@ namespace Infrastructure.Migrations
                     b.ToTable("technical_areas", "public");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Invitations.InvitationLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CreatedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_used");
+
+                    b.Property<int>("TargetRole")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_role");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("token");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invitation_links");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_invitation_links_created_by_id");
+
+                    b.HasIndex("Token")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invitation_links_token");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_invitation_links_user_id");
+
+                    b.ToTable("invitation_links", "public");
+                });
+
             modelBuilder.Entity("Domain.Entities.Profiles.EmployeeLanguage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -220,8 +281,8 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("VerificationStatus")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("verification_status");
 
                     b.HasKey("Id")
@@ -546,10 +607,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("technology_id");
 
-                    b.Property<int>("ExperienceLevel")
-                        .HasColumnType("integer")
-                        .HasColumnName("experience_level");
-
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
@@ -657,7 +714,6 @@ namespace Infrastructure.Migrations
                         .HasColumnName("password_hash");
 
                     b.Property<string>("ProfilePictureUrl")
-                        .IsRequired()
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
                         .HasColumnName("profile_picture_url");
@@ -728,6 +784,23 @@ namespace Infrastructure.Migrations
                     b.Navigation("SpecializedRole");
 
                     b.Navigation("Technology");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Invitations.InvitationLink", b =>
+                {
+                    b.HasOne("Domain.Entities.Users.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invitation_links_users_created_by_id");
+
+                    b.HasOne("Domain.Entities.Users.User", null)
+                        .WithMany("CreatedInvitations")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("fk_invitation_links_users_user_id");
+
+                    b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("Domain.Entities.Profiles.EmployeeLanguage", b =>
@@ -934,6 +1007,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.Users.User", b =>
                 {
+                    b.Navigation("CreatedInvitations");
+
                     b.Navigation("CreatedTeams");
 
                     b.Navigation("EmployeeProfile");

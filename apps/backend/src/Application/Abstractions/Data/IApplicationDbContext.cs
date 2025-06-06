@@ -1,3 +1,5 @@
+using Domain.Entities.Areas_Roles;
+using Domain.Entities.Invitations;
 using Domain.Entities.Profiles;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
@@ -20,6 +22,12 @@ public interface IApplicationDbContext
     DbSet<EmployeeLanguage> EmployeeLanguages { get; }
     DbSet<TeamRequiredTechnology> TeamRequiredTechnologies { get; }
     DbSet<TeamMember> TeamMembers { get; }
+    DbSet<EmployeeSpecializedRole> EmployeeSpecializedRoles { get; }
+    DbSet<SpecializedRole> SpecializedRoles { get; }
+    DbSet<SpecializedRoleSkill> SpecializedRoleSkills { get; }
+    DbSet<TechnicalArea> TechnicalAreas { get; }
+    DbSet<RecommendedMember> RecommendedMembers { get; }
+    DbSet<InvitationLink> InvitationLinks { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

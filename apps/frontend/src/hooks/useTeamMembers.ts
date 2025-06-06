@@ -1,4 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+
+import { useAuth } from '@/contexts/AuthContext';
 
 import { toast } from 'sonner';
 
@@ -35,67 +37,78 @@ export interface TeamMemberUpdateRequest {
 }
 
 export const useTeamMembers = () => {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<TeamMemberRecommendation[]>([]);
 
-  const findTeamMembers = useCallback(async (request: FindTeamMemberRequest): Promise<TeamMemberRecommendation[]> => {
-    setLoading(true);
-    setError(null);
+  const authHeaders = useMemo(
+    () => ({
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token],
+  );
 
-    try {
-      const response = await fetch('http://localhost:5001/api/teams/find', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+  const findTeamMembers = useCallback(
+    async (request: FindTeamMemberRequest): Promise<TeamMemberRecommendation[]> => {
+      setLoading(true);
+      setError(null);
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      try {
+        const response = await fetch('http://localhost:5001/api/teams/find', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setRecommendations(data);
+        return data;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        setError(errorMessage);
+        return [];
+      } finally {
+        setLoading(false);
       }
+    },
+    [authHeaders],
+  );
 
-      const data = await response.json();
-      setRecommendations(data);
-      return data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const addTeamMembers = useCallback(
+    async (request: TeamMemberUpdateRequest): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
 
-  const addTeamMembers = useCallback(async (request: TeamMemberUpdateRequest): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
+      try {
+        const response = await fetch('http://localhost:5001/api/teams/add', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(request),
+        });
 
-    try {
-      const response = await fetch('http://localhost:5001/api/teams/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        toast.success('Miembros agregados correctamente');
+        return true;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+        setError(errorMessage);
+        toast.error(`Error al añadir miembros: ${errorMessage}`);
+        return false;
+      } finally {
+        setLoading(false);
       }
-
-      toast.success('Miembros agregados correctamente');
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
-      toast.error(`Error al añadir miembros: ${errorMessage}`);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [authHeaders],
+  );
 
   return {
     loading,

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoles } from '@/hooks/useRoles';
 import { useTeamGenerator } from '@/hooks/useTeamGenerator';
 import { TeamWeights } from '@/hooks/useTeams';
@@ -31,7 +32,15 @@ export const TeamBuilder = () => {
 
   const [teamName, setTeamName] = useState<string>('');
   const [teamSize, setTeamSize] = useState<number>(3);
-  const [teamRoles, setTeamRoles] = useState<{ role: string; area: string; level: string }[]>([]);
+  const [teamRoles, setTeamRoles] = useState<{ role: string; area: string; level: string }[]>(
+    Array(teamSize)
+      .fill(null)
+      .map(() => ({
+        role: '',
+        area: '',
+        level: '',
+      })),
+  );
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [sfiaLevel, setSfiaLevel] = useState<number>(3);
   const [weights, setWeights] = useState<Record<string, number>>({});
@@ -41,8 +50,9 @@ export const TeamBuilder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
   const [availableTechOptions, setAvailableTechOptions] = useState<SelectOption[]>([]);
+  const { user } = useAuth();
 
-  const creatorId = 'b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e';
+  const creatorId = user!.id;
 
   useEffect(() => {
     if (criteria.length > 0) {
@@ -67,8 +77,17 @@ export const TeamBuilder = () => {
           level: roles[0]?.levels?.[0] || '',
         }));
       setTeamRoles(initialRoles);
+    } else if (!loadingRoles && roles.length === 0) {
+      const emptyRoles = Array(teamSize)
+        .fill(null)
+        .map(() => ({
+          role: '',
+          area: '',
+          level: '',
+        }));
+      setTeamRoles(emptyRoles);
     }
-  }, [teamSize, roles]);
+  }, [teamSize, roles, loadingRoles]);
 
   useEffect(() => {
     if (technologies.length > 0) {
@@ -159,6 +178,10 @@ export const TeamBuilder = () => {
   };
 
   const handleGenerateTeams = async () => {
+    if (!user) {
+      return;
+    }
+
     const params = {
       CreatorId: creatorId,
       TeamSize: teamSize,
@@ -313,8 +336,12 @@ export const TeamBuilder = () => {
             <h2 className="mb-4 text-lg font-medium text-gray-900">Roles y Niveles Requeridos</h2>
             <div className="space-y-4">
               {teamRoles.map((roleObj, index) => {
-                const roleOptions = roles.map((r) => ({ value: r.role, label: r.role }));
-                const selectedRole = roles.find((r) => r.role === roleObj.role);
+                const roleOptions = roles.map((r) => ({
+                  value: r.role || '',
+                  label: r.role || 'Sin nombre',
+                }));
+
+                const selectedRole = roles.find((r) => r.role === roleObj.role) || roles[0];
                 const areaOptions = selectedRole?.areas?.map((a) => ({ value: a, label: a })) || [];
                 const levelOptions = selectedRole?.levels?.map((l) => ({ value: l, label: l })) || [];
 
@@ -327,13 +354,14 @@ export const TeamBuilder = () => {
                       <label className="text-xs font-medium text-gray-500 md:hidden">Rol</label>
                       <Select
                         options={roleOptions}
-                        value={roleOptions.find((opt) => opt.value === roleObj.role)}
+                        value={roleOptions.find((opt) => opt.value === roleObj.role) || undefined}
                         onChange={(selected) => {
                           if (selected && !Array.isArray(selected)) {
                             updateRoleAtIndex(index, 'role', selected.value.toString());
                           }
                         }}
-                        placeholder="Seleccionar rol..."
+                        placeholder={roles.length > 0 ? 'Seleccionar rol...' : 'Cargando roles...'}
+                        isDisabled={roles.length === 0}
                       />
                     </div>
 

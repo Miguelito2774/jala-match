@@ -2,12 +2,12 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
-interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onCheckedChange'> {
   label?: string;
-  onChange?: (checked: boolean) => void;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
-export const Switch = ({ className, label, checked, onChange, ...props }: SwitchProps) => {
+export const Switch = ({ className, label, checked, onCheckedChange, ...props }: SwitchProps) => {
   return (
     <label className="flex cursor-pointer items-center">
       <div className="relative">
@@ -15,7 +15,7 @@ export const Switch = ({ className, label, checked, onChange, ...props }: Switch
           type="checkbox"
           className="sr-only"
           checked={checked}
-          onChange={(e) => onChange && onChange(e.target.checked)}
+          onChange={(e) => onCheckedChange && onCheckedChange(e.target.checked)}
           {...props}
         />
         <div className={cn('block h-6 w-10 rounded-full', checked ? 'bg-blue-600' : 'bg-gray-300', className)} />

@@ -44,7 +44,11 @@ internal sealed class GetAvailableTeamsForMemberQueryHandler
                 );
             }
 
-            List<Team> allTeams = await _teamRepository.GetAllAsync(cancellationToken);
+            List<Team> allTeams = await _teamRepository.GetByCreatorIdAsync(
+                query.CreatorId,
+                cancellationToken
+            );
+
             var activeTeams = allTeams.Where(t => t.IsActive).ToList();
 
             if (query.ExcludeTeamId.HasValue)
@@ -61,7 +65,7 @@ internal sealed class GetAvailableTeamsForMemberQueryHandler
                     HasMember = team.Members.Any(m =>
                         m.EmployeeProfileId == query.EmployeeProfileId
                     ),
-                    CreatorName = $"Creator: {team.CreatorId}" // Podrías mejorar esto obteniendo el nombre real del creator
+                    CreatorName = $"Creator: {team.CreatorId}",
                 })
                 .ToList();
 

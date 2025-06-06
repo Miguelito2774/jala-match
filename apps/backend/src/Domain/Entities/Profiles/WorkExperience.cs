@@ -19,5 +19,5 @@ public class WorkExperience : Entity
     public required DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
 
-    public required EmployeeProfile EmployeeProfile { get; set; }
+    public EmployeeProfile EmployeeProfile { get; set; }
 }

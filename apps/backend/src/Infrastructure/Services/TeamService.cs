@@ -483,7 +483,7 @@ public class TeamService : ITeamService
 
                 if (team.Members.Any(m => m.EmployeeProfileId == member.EmployeeProfileId))
                 {
-                    continue; // Skip if member already exists
+                    continue;
                 }
 
                 var newMember = new TeamMember
@@ -503,7 +503,19 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Return updated team response
+            foreach (TeamMemberDto memberDto in request.Members)
+            {
+                EmployeeProfile? ep = await _employeeProfileRepository.GetByIdAsync(
+                    memberDto.EmployeeProfileId
+                );
+                if (ep != null && ep.TeamMemberships.Count >= 2 && ep.Availability)
+                {
+                    ep.Availability = false;
+                    await _employeeProfileRepository.UpdateAsync(ep);
+                }
+            }
+            await _teamRepository.SaveChangesAsync(cancellationToken);
+
             return Result.Success(
                 new TeamResponse
                 {

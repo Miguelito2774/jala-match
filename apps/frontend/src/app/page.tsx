@@ -1,8 +1,5 @@
-// app/page.tsx
-import { redirect } from 'next/navigation';
-
-import { ROUTES } from '../../routes';
+import { DashboardRedirect } from '@/components/organisms/sidebar/DashboardRedirect';
 
 export default function Home() {
-  redirect(ROUTES.MANAGER.TEAM_BUILDER);
+  return <DashboardRedirect />;
 }

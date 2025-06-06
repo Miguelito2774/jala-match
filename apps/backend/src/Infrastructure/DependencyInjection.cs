@@ -1,16 +1,20 @@
+using System.Text;
 using Application.Abstractions.Data;
 using Application.Abstractions.Repositories;
 using Application.Abstractions.Services;
 using Domain.Services;
+using Infrastructure.Authentication;
 using Infrastructure.Database;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
 
@@ -28,7 +32,7 @@ public static class DependencyInjection
             .AddServices(configuration)
             .AddDatabase(configuration)
             .AddHealthChecks(configuration)
-            .AddAuthenticationInternal()
+            .AddAuthenticationInternal(configuration)
             .AddAuthorizationInternal()
             .AddCacheInternal(configuration);
     }
@@ -44,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<ITeamRepository, TeamRepository>();
         services.AddScoped<IEmployeeProfileRepository, EmployeeProfileRepository>();
         services.AddScoped<ITechnologyRepository, TechnologyRepository>();
+        services.AddScoped<IAuthService, AuthService>();
 
         services.AddHttpClient(
             "AIService",
@@ -102,8 +107,33 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddAuthenticationInternal(this IServiceCollection services)
+    private static IServiceCollection AddAuthenticationInternal(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
     {
+        services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
+
+        JwtSettings? jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
+
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings?.Issuer,
+                    ValidAudience = jwtSettings?.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings?.SecretKey!)
+                    ),
+                    ClockSkew = TimeSpan.Zero,
+                }
+            );
+
         return services;
     }
 

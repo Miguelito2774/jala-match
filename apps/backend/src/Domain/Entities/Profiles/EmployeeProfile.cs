@@ -20,7 +20,7 @@ public class EmployeeProfile : Entity
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
 
     public string? VerificationNotes { get; set; }
-    public required User User { get; set; }
+    public User User { get; set; }
     public List<WorkExperience> WorkExperiences { get; set; } = new();
     public List<PersonalInterest> PersonalInterests { get; set; } = new();
     public List<EmployeeTechnology> Technologies { get; set; } = new();

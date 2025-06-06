@@ -1,4 +1,5 @@
-﻿using Domain.Entities.Profiles;
+﻿using Domain.Entities.Enums;
+using Domain.Entities.Profiles;
 using Infrastructure.Database.Configurations.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -23,8 +24,13 @@ internal sealed class EmployeeProfileConfiguration : EntityConfiguration<Employe
         builder.Property(ep => ep.SfiaLevelGeneral).HasPrecision(3, 1).IsRequired();
         builder
             .Property(ep => ep.VerificationStatus)
-            .HasConversion<string>()
-            .HasMaxLength(20)
+            .HasConversion(
+                v => ((int)v).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                v =>
+                    (VerificationStatus)
+                        int.Parse(v, System.Globalization.CultureInfo.InvariantCulture)
+            )
+            .HasMaxLength(2)
             .IsRequired();
     }
 }

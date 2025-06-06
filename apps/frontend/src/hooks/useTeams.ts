@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -74,10 +74,13 @@ export const useTeams = () => {
 
   const apiBaseUrl = 'http://localhost:5001/api/teams';
 
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const authHeaders = useMemo(
+    () => ({
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    }),
+    [token],
+  );
 
   const handleError = useCallback((error: unknown) => {
     if (error instanceof Error) {
@@ -108,7 +111,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, token],
+    [apiBaseUrl, handleError, authHeaders],
   );
 
   const createTeam = useCallback(
@@ -134,7 +137,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, token],
+    [apiBaseUrl, handleError, authHeaders],
   );
 
   const getTeamById = useCallback(
@@ -157,7 +160,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, token],
+    [apiBaseUrl, handleError, authHeaders],
   );
 
   const deleteTeam = useCallback(
@@ -181,7 +184,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, token],
+    [apiBaseUrl, handleError, authHeaders],
   );
 
   const removeTeamMember = useCallback(
@@ -219,7 +222,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, currentTeam, token],
+    [apiBaseUrl, handleError, currentTeam, authHeaders],
   );
 
   const moveTeamMember = useCallback(
@@ -260,7 +263,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, currentTeam, token],
+    [apiBaseUrl, handleError, currentTeam, authHeaders],
   );
 
   const getAvailableTeamsForMember = useCallback(
@@ -287,7 +290,7 @@ export const useTeams = () => {
         setLoading(false);
       }
     },
-    [apiBaseUrl, handleError, token],
+    [apiBaseUrl, handleError, authHeaders],
   );
 
   useEffect(() => {

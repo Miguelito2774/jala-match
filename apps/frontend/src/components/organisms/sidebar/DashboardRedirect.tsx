@@ -15,7 +15,7 @@ export const DashboardRedirect = () => {
       const redirectPath = getDashboardForRole(user.role);
       router.replace(redirectPath);
     }
-  }, [user, isLoading, isAuthenticated]);
+  }, [user, isLoading, isAuthenticated, router]);
 
   const getDashboardForRole = (role: string) => {
     switch (role) {

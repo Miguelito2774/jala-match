@@ -1,43 +1,59 @@
+// routes.ts
 export const ROUTES = {
-  PUBLIC: {
-    HOME: '/',
-    PRIVACY: '/privacy',
-    TERMS: '/terms',
-    HELP: '/help',
-  },
+  // Rutas de autenticación
   AUTH: {
     LOGIN: '/login',
     REGISTER: '/register',
     FORGOT_PASSWORD: '/forgot-password',
   },
-  EMPLOYEE: {
-    DASHBOARD: '/employee/dashboard',
-    PROFILE: '/employee/profile',
-    TEAMS: '/employee/teams',
-  },
-  MANAGER: {
-    TEAM_BUILDER: '/team-builder',
-    TEAM_GENERATED: '/manager/team-generated',
-    TEAM_LIST: '/teams',
-  },
-  ADMIN: {
-    INVITATIONS: '/admin/invitations',
-  },
-  SETTINGS: '/settings',
-};
 
-export const NAV_ITEMS = [
-  { href: ROUTES.EMPLOYEE.DASHBOARD, label: 'Inicio', role: 'employee' },
-  { href: ROUTES.EMPLOYEE.PROFILE, label: 'Perfil', role: 'employee' },
-  { href: ROUTES.EMPLOYEE.TEAMS, label: 'Equipos', role: 'employee' },
-  { href: ROUTES.PUBLIC.HELP, label: 'Ayuda', role: 'all' },
-  { href: ROUTES.MANAGER.TEAM_BUILDER, label: 'Crear Equipos', role: 'manager' },
-  { href: ROUTES.MANAGER.TEAM_LIST, label: 'Mis Equipos', role: 'manager' },
-  { href: ROUTES.PUBLIC.PRIVACY, label: 'Política de Privacidad', role: 'all' },
-  { href: ROUTES.PUBLIC.TERMS, label: 'Términos y Condiciones', role: 'all' },
-  { href: ROUTES.AUTH.LOGIN, label: 'Iniciar Sesión', role: 'all' },
-  { href: ROUTES.AUTH.REGISTER, label: 'Registrarse', role: 'all' },
-  { href: ROUTES.AUTH.FORGOT_PASSWORD, label: 'Olvidé mi contraseña', role: 'all' },
-  { href: ROUTES.ADMIN.INVITATIONS, label: 'Invitar Managers', role: 'admin' },
-  { href: ROUTES.SETTINGS, label: 'Configuración', role: 'all' },
-];
+  // Rutas de empleado (App Router groups usan `/profile` y `/teams` directamente)
+  EMPLOYEE: {
+    DASHBOARD: '/profile',
+    PROFILE: '/profile',
+    TEAMS: '/teams',
+  },
+
+  // Rutas de manager (sin segment prefix en URL)
+  MANAGER: {
+    DASHBOARD: '/team-builder',
+    TEAM_BUILDER: '/team-builder',
+    TEAM_LIST: '/teams',
+    TEAM_DETAIL: '/teams/[teamId]',
+  },
+
+  // Rutas de admin
+  ADMIN: {
+    DASHBOARD: '/admin/dashboard',
+    INVITATIONS: '/admin/invitations',
+    USERS: '/admin/users',
+  },
+
+  // Rutas compartidas
+  SETTINGS: '/settings',
+  HOME: '/',
+
+  // Rutas públicas
+  PRIVACY: '/privacy',
+  TERMS: '/terms',
+} as const;
+
+// Mapeo de roles a rutas de dashboard por defecto
+export const DEFAULT_DASHBOARD_ROUTES = {
+  Employee: ROUTES.EMPLOYEE.DASHBOARD,
+  Manager: ROUTES.MANAGER.TEAM_BUILDER, // Cambiado a team-builder como dashboard principal
+  Admin: ROUTES.ADMIN.INVITATIONS,
+} as const;
+
+// Rutas protegidas que requieren autenticación
+export const PROTECTED_ROUTES = ['/employee', '/manager', '/admin', '/settings'] as const;
+
+// Rutas públicas que no requieren autenticación
+export const PUBLIC_ROUTES = [
+  ROUTES.HOME,
+  ROUTES.AUTH.LOGIN,
+  ROUTES.AUTH.REGISTER,
+  ROUTES.AUTH.FORGOT_PASSWORD,
+  ROUTES.PRIVACY,
+  ROUTES.TERMS,
+] as const;

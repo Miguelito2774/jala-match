@@ -1,5 +1,6 @@
 using Application.Abstractions.Data;
 using Application.Abstractions.Messaging;
+using Application.Abstractions.Services;
 using Application.DTOs;
 using Domain.Entities.Enums;
 using Domain.Entities.Profiles;
@@ -14,10 +15,14 @@ public sealed class ApproveProfileVerificationCommandHandler
     : ICommandHandler<ApproveProfileVerificationCommand, VerificationDecisionResponse>
 {
     private readonly IApplicationDbContext _context;
+    private readonly INotificationService _notificationService;
 
-    public ApproveProfileVerificationCommandHandler(IApplicationDbContext context)
+    public ApproveProfileVerificationCommandHandler(
+        IApplicationDbContext context,
+        INotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<VerificationDecisionResponse>> Handle(
@@ -26,10 +31,12 @@ public sealed class ApproveProfileVerificationCommandHandler
     )
     {
         // Verificar que el profile existe y está pendiente
-        EmployeeProfile? profile = await _context.EmployeeProfiles.FirstOrDefaultAsync(
-            ep => ep.Id == request.EmployeeProfileId,
-            cancellationToken
-        );
+        EmployeeProfile? profile = await _context.EmployeeProfiles
+            .Include(ep => ep.User)
+            .FirstOrDefaultAsync(
+                ep => ep.Id == request.EmployeeProfileId,
+                cancellationToken
+            );
 
         if (profile == null)
         {
@@ -91,6 +98,24 @@ public sealed class ApproveProfileVerificationCommandHandler
         // Guardar cambios
         _context.ProfileVerifications.Add(verification);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Send notification email
+        try
+        {
+            await _notificationService.SendProfileApprovedNotificationAsync(
+                profile.User.Email,
+                $"{profile.FirstName} {profile.LastName}",
+                request.SfiaProposed,
+                request.Notes,
+                cancellationToken
+            );
+        }
+        catch (Exception ex)
+        {
+            // Log the exception but don't fail the operation
+            // TODO: Add proper logging
+            Console.WriteLine($"Failed to send notification email: {ex.Message}");
+        }
 
         var response = new VerificationDecisionResponse
         {

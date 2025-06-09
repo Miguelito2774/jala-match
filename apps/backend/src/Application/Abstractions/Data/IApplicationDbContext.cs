@@ -1,5 +1,6 @@
 using Domain.Entities.Areas_Roles;
 using Domain.Entities.Invitations;
+using Domain.Entities.Privacy;
 using Domain.Entities.Profiles;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
@@ -28,6 +29,10 @@ public interface IApplicationDbContext
     DbSet<TechnicalArea> TechnicalAreas { get; }
     DbSet<RecommendedMember> RecommendedMembers { get; }
     DbSet<InvitationLink> InvitationLinks { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+    DbSet<UserConsent> UserConsents { get; }
+    DbSet<DataDeletionRequest> DataDeletionRequests { get; }
+    DbSet<DataExportRequest> DataExportRequests { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -225,3 +225,62 @@ public class GetAvailableTeamsForMemberRequest
     public Guid EmployeeProfileId { get; set; }
     public Guid? ExcludeTeamId { get; set; }
 }
+
+// DTOs para vista de equipos de empleados (my-teams)
+public class EmployeeTeamResponse
+{
+    public Guid TeamId { get; set; }
+    public string TeamName { get; set; } = string.Empty;
+    public string CreatorName { get; set; } = string.Empty;
+    public double CompatibilityScore { get; set; }
+    public bool IsActive { get; set; }
+    public List<TeammateDto> Teammates { get; set; } = new();
+    public bool IsCurrentUserLeader { get; set; }
+}
+
+public class TeammateDto
+{
+    public Guid EmployeeProfileId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string FullName => $"{FirstName} {LastName}";
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public int SfiaLevel { get; set; }
+    public bool IsLeader { get; set; }
+    public string Country { get; set; } = string.Empty;
+    public string Timezone { get; set; } = string.Empty;
+    public string Mbti { get; set; } = string.Empty;
+    public bool Availability { get; set; }
+    public int SfiaLevelGeneral { get; set; }
+    public Uri? ProfilePictureUrl { get; set; }
+
+    // Skills and expertise
+    public List<TeammateSpecializedRoleDto> SpecializedRoles { get; set; } = new();
+    public List<TeammateTechnologyDto> Technologies { get; set; } = new();
+    public List<TeammateLanguageDto> Languages { get; set; } = new();
+    public List<string> PersonalInterests { get; set; } = new();
+}
+
+public class TeammateSpecializedRoleDto
+{
+    public string RoleName { get; set; } = string.Empty;
+    public string TechnicalArea { get; set; } = string.Empty;
+    public ExperienceLevel Level { get; set; }
+    public int YearsExperience { get; set; }
+}
+
+public class TeammateTechnologyDto
+{
+    public string TechnologyName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+    public int SfiaLevel { get; set; }
+    public decimal YearsExperience { get; set; }
+    public string Version { get; set; } = string.Empty;
+}
+
+public class TeammateLanguageDto
+{
+    public string Language { get; set; } = string.Empty;
+    public string Proficiency { get; set; } = string.Empty;
+}

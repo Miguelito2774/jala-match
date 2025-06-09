@@ -20,6 +20,7 @@ public class TeamService : ITeamService
     private readonly ITeamRepository _teamRepository;
     private readonly IEmployeeProfileRepository _employeeProfileRepository;
     private readonly ITechnologyRepository _technologyRepository;
+    private readonly INotificationService _notificationService;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -31,7 +32,8 @@ public class TeamService : ITeamService
         ILogger<TeamService> logger,
         ITeamRepository teamRepository,
         IEmployeeProfileRepository employeeProfileRepository,
-        ITechnologyRepository technologyRepository
+        ITechnologyRepository technologyRepository,
+        INotificationService notificationService
     )
     {
         _httpClient = httpClientFactory.CreateClient("AIService");
@@ -39,6 +41,7 @@ public class TeamService : ITeamService
         _teamRepository = teamRepository;
         _employeeProfileRepository = employeeProfileRepository;
         _technologyRepository = technologyRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<AiServiceResponse>> GenerateTeams(
@@ -272,6 +275,39 @@ public class TeamService : ITeamService
             await _teamRepository.AddAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
+            try
+            {
+                EmployeeProfile? creatorProfile = await _employeeProfileRepository.GetByIdAsync(command.CreatorId);
+                string managerEmail = creatorProfile?.User?.Email ?? "No disponible";
+
+                foreach (TeamMember member in team.Members)
+                {
+                    EmployeeProfile? memberProfile = await _employeeProfileRepository.GetByIdAsync(member.EmployeeProfileId);
+                    
+                    if (memberProfile?.User?.Email != null)
+                    {
+                        string memberName = $"{memberProfile.FirstName} {memberProfile.LastName}";
+                        
+                        await _notificationService.SendTeamMemberAddedNotificationAsync(
+                            memberProfile.User.Email,
+                            memberName,
+                            team.Name,
+                            managerEmail,
+                            cancellationToken
+                        );
+                    }
+                }
+            }
+            catch (Exception notificationEx)
+            {
+                _logger.LogError(
+                    notificationEx,
+                    "Error sending team creation notifications for team {TeamId}",
+                    team.Id
+                );
+                // Don't fail team creation if notifications fail
+            }
+
             return new TeamResponse
             {
                 TeamId = team.Id,
@@ -464,6 +500,9 @@ public class TeamService : ITeamService
                 );
             }
 
+            // Keep track of which members are actually new
+            var newMemberIds = new List<Guid>();
+
             foreach (TeamMemberDto member in request.Members)
             {
                 EmployeeProfile? employeeProfile = await _employeeProfileRepository.GetByIdAsync(
@@ -481,10 +520,14 @@ public class TeamService : ITeamService
                     );
                 }
 
+                // Check if member is already in team BEFORE adding
                 if (team.Members.Any(m => m.EmployeeProfileId == member.EmployeeProfileId))
                 {
                     continue;
                 }
+
+                // This member is new, add to tracking list
+                newMemberIds.Add(member.EmployeeProfileId);
 
                 var newMember = new TeamMember
                 {
@@ -503,11 +546,48 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            foreach (TeamMemberDto memberDto in request.Members)
+            // Send notifications for team member additions - only for actually new members
+            try
             {
-                EmployeeProfile? ep = await _employeeProfileRepository.GetByIdAsync(
-                    memberDto.EmployeeProfileId
+                foreach (TeamMemberDto memberDto in request.Members)
+                {
+                    // Only process notifications for actually new members
+                    if (!newMemberIds.Contains(memberDto.EmployeeProfileId))
+                    {
+                        continue;
+                    }
+
+                    EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                        memberDto.EmployeeProfileId
+                    );
+
+                    if (profile?.User.Email != null)
+                    {
+                        // Send notification to the new member
+                        await _notificationService.SendTeamMemberAddedNotificationAsync(
+                            profile.User.Email,
+                            $"{profile.FirstName} {profile.LastName}",
+                            team.Name,
+                            team.Creator?.Email ?? "manager@jalamatch.com",
+                            cancellationToken
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending team member addition notifications for team {TeamId}",
+                    team.Id
                 );
+                // Don't fail the operation just because notifications failed
+            }
+
+            // Update availability for new members only
+            foreach (Guid newMemberId in newMemberIds)
+            {
+                EmployeeProfile? ep = await _employeeProfileRepository.GetByIdAsync(newMemberId);
                 if (ep != null && ep.TeamMemberships.Count >= 2 && ep.Availability)
                 {
                     ep.Availability = false;
@@ -609,6 +689,35 @@ public class TeamService : ITeamService
 
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            // Send notifications for team member removal
+            try
+            {
+                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                    request.EmployeeProfileId
+                );
+
+                if (profile?.User.Email != null)
+                {
+                    // Send notification to the removed member
+                    await _notificationService.SendTeamMemberRemovedNotificationAsync(
+                        profile.User.Email,
+                        $"{profile.FirstName} {profile.LastName}",
+                        team.Name,
+                        team.Creator?.Email ?? "manager@jalamatch.com",
+                        cancellationToken
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending team member removal notifications for team {TeamId}",
+                    team.Id
+                );
+                // Don't fail the operation just because notifications failed
+            }
 
             return BuildTeamResponse(team);
         }
@@ -718,6 +827,37 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(sourceTeam, cancellationToken);
             await _teamRepository.UpdateAsync(targetTeam, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
+
+            // Send notifications for team member move
+            try
+            {
+                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                    request.EmployeeProfileId
+                );
+
+                if (profile?.User.Email != null)
+                {
+                    // Send notification to the moved member
+                    await _notificationService.SendTeamMemberMovedNotificationAsync(
+                        profile.User.Email,
+                        $"{profile.FirstName} {profile.LastName}",
+                        sourceTeam.Name,
+                        targetTeam.Name,
+                        targetTeam.Creator?.Email ?? "manager@jalamatch.com",
+                        cancellationToken
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending team member move notifications for teams {SourceTeamId} -> {TargetTeamId}",
+                    sourceTeam.Id,
+                    targetTeam.Id
+                );
+                // Don't fail the operation just because notifications failed
+            }
 
             Result<TeamResponse> sourceTeamResponse = BuildTeamResponse(sourceTeam);
             Result<TeamResponse> targetTeamResponse = BuildTeamResponse(targetTeam);

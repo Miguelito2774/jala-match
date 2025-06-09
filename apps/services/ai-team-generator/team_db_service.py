@@ -87,10 +87,10 @@ class TeamDatabaseService:
             f" AND ep.id NOT IN ('{"','".join(current_ids)}')" if current_ids else ""
         )
 
-        # Map level name to integer for SQL filter
-        level_map = {"Junior": 0, "Mid": 1, "Senior": 2, "Architect": 3}
+        # Map level name to string for SQL filter (matching database storage)
+        level_map = {"Junior": "Junior", "Staff": "Staff", "Senior": "Senior", "Architect": "Architect"}
         level = level_map.get(level_name) if level_name else None
-        level_filter = f" AND esr.level = {level}" if level is not None else ""
+        level_filter = f" AND esr.level = '{level}'" if level is not None else ""
 
         role_filter = f" AND sr.name = '{role}'" if role else ""
         area_filter = f" AND ta.name = '{area}'" if area else ""
@@ -154,15 +154,32 @@ class TeamDatabaseService:
     
     async def get_generation_candidates(self, requirements, technologies, min_sfia_level, availability):
         # Build OR conditions for each requirement
-        level_map = {"Junior": 0, "Mid":1, "Senior":2, "Architect":3}
+        # Map level names to their string representations (matching the database)
+        level_map = {"Junior": "Junior", "Staff": "Staff", "Senior": "Senior", "Architect": "Architect"}
         req_clauses = []
+        
+        print(f"DEBUG - get_generation_candidates requirements: {requirements}")
+        
         for req in requirements:
-            lvl = level_map.get(req.get("Level"), None)
-            if req.get("Role") and req.get("Area") and lvl is not None:
-                req_clauses.append(
-                    f"(sr.name = '{req['Role']}' AND ta.name = '{req['Area']}' AND esr.level = {lvl})"
-                )
+            print(f"DEBUG - Processing requirement: {req}")
+            raw_level = req.get("Level")
+            
+            # Handle both string and potential numeric level values
+            if isinstance(raw_level, int):
+                # If you have a numeric mapping, convert it here
+                numeric_to_string = {0: "Junior", 1: "Staff", 2: "Senior", 3: "Architect"}
+                level_name = numeric_to_string.get(raw_level)
+            else:
+                level_name = level_map.get(raw_level)
+                
+            print(f"DEBUG - Original level: {raw_level}, mapped level: {level_name}")
+            
+            if req.get("Role") and req.get("Area") and level_name:
+                clause = f"(sr.name = '{req['Role']}' AND ta.name = '{req['Area']}' AND esr.level = '{level_name}')"
+                print(f"DEBUG - Generated clause: {clause}")
+                req_clauses.append(clause)
         req_filter = f"AND ({' OR '.join(req_clauses)})" if req_clauses else ""
+        print(f"DEBUG - Final req_filter: {req_filter}")
 
         # Technologies filter
         tech_list = technologies or []
@@ -173,7 +190,7 @@ class TeamDatabaseService:
             if tech_list else ""
         )
 
-        verification_value = 2
+        verification_value = "2"  # Approved status as string
 
         # Availability and SFIA level filter
         avail_filter = f"AND ep.availability = {str(availability).lower()}"

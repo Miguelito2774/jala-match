@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const PROTECTED_ROUTES = ['/profile', '/teams', '/team-builder', '/admin', '/settings'];
-const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/privacy', '/terms'];
+const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
 const ROLE_ROUTES = {
   Employee: ['/profile', '/teams'],
@@ -83,7 +83,7 @@ function getDashboardForRole(role: string): string {
     case 'Manager':
       return '/teams';
     case 'Admin':
-      return '/admin/invitations';
+      return '/admin/dashboard';
     default:
       return '/login';
   }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -22,11 +21,17 @@ public sealed class AuthService : IAuthService
 {
     private readonly IApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
+    private readonly INotificationService _notificationService;
 
-    public AuthService(IApplicationDbContext context, IOptions<JwtSettings> jwtSettings)
+    public AuthService(
+        IApplicationDbContext context,
+        IOptions<JwtSettings> jwtSettings,
+        INotificationService notificationService
+    )
     {
         _context = context;
         _jwtSettings = jwtSettings.Value;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<AuthResponse>> LoginAsync(
@@ -224,6 +229,16 @@ public sealed class AuthService : IAuthService
         _context.InvitationLinks.Add(invitation);
         await _context.SaveChangesAsync(cancellationToken);
 
+        string invitationLink = $"http://localhost:3000/register?token={invitationToken}";
+
+        await _notificationService.SendInvitationNotificationAsync(
+            email,
+            email.Split('@')[0],
+            invitationLink,
+            admin.Email,
+            cancellationToken
+        );
+
         return invitationToken;
     }
 
@@ -284,5 +299,86 @@ public sealed class AuthService : IAuthService
                     ErrorType.Validation
                 )
             );
+    }
+
+    public async Task<Result<bool>> RequestPasswordResetAsync(
+        string email,
+        CancellationToken cancellationToken
+    )
+    {
+        User? user = await _context.Users.FirstOrDefaultAsync(
+            u => EF.Functions.ILike(u.Email, email),
+            cancellationToken
+        );
+
+        if (user == null)
+        {
+            // Return success even if user doesn't exist to prevent email enumeration
+            return Result.Success(true);
+        }
+
+        // Generate password reset token
+        string resetToken = Guid.NewGuid().ToString("N");
+
+        var passwordResetToken = new PasswordResetToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = resetToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            IsUsed = false,
+            Email = user.Email,
+            User = user,
+        };
+
+        _context.PasswordResetTokens.Add(passwordResetToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Generate reset link
+        string resetLink = $"http://localhost:3000/reset-password?token={resetToken}";
+
+        // Send password reset email
+        await _notificationService.SendPasswordResetNotificationAsync(
+            user.Email,
+            user.Email.Split('@')[0], // Use part before @ as name
+            resetLink,
+            cancellationToken
+        );
+
+        return Result.Success(true);
+    }
+
+    public async Task<Result<bool>> ResetPasswordAsync(
+        string token,
+        string newPassword,
+        CancellationToken cancellationToken
+    )
+    {
+        PasswordResetToken? passwordResetToken = await _context
+            .PasswordResetTokens.Include(p => p.User)
+            .FirstOrDefaultAsync(
+                p => p.Token == token && !p.IsUsed && p.ExpiresAt > DateTime.UtcNow,
+                cancellationToken
+            );
+
+        if (passwordResetToken == null)
+        {
+            return Result.Failure<bool>(
+                new Error(
+                    "Auth.InvalidResetToken",
+                    "Token de recuperación inválido o expirado",
+                    ErrorType.Validation
+                )
+            );
+        }
+
+        // Update user password
+        passwordResetToken.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        passwordResetToken.IsUsed = true;
+        passwordResetToken.UsedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(true);
     }
 }

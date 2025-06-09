@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 
 import Link from 'next/link';
 
+import { PageLoader } from '@/components/atoms/loaders/PageLoader';
 import { ProtectedRoute } from '@/components/organisms/sidebar/ProtectedRoute';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileVerifications, type PendingVerificationsResponse } from '@/hooks/useProfileVerifications';
 
@@ -55,29 +55,7 @@ export default function ProfileVerificationsPage() {
     return (
       <ProtectedRoute allowedRoles={['Manager']}>
         <DashboardLayout>
-          <div className="container mx-auto px-4 py-8">
-            <div className="mb-8">
-              <Skeleton className="mb-2 h-8 w-64" />
-              <Skeleton className="h-4 w-96" />
-            </div>
-            <div className="grid gap-6">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-40" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <PageLoader title="Cargando verificaciones..." subtitle="Obteniendo perfiles pendientes de verificación" />
         </DashboardLayout>
       </ProtectedRoute>
     );

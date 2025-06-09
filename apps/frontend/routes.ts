@@ -24,9 +24,9 @@ export const ROUTES = {
 
   // Rutas de admin
   ADMIN: {
-    DASHBOARD: '/admin/dashboard',
-    INVITATIONS: '/admin/invitations',
-    USERS: '/admin/users',
+    DASHBOARD: '/dashboard',
+    INVITATIONS: '/invitations',
+    USERS: '/users',
   },
 
   // Rutas compartidas
@@ -42,7 +42,7 @@ export const ROUTES = {
 export const DEFAULT_DASHBOARD_ROUTES = {
   Employee: ROUTES.EMPLOYEE.DASHBOARD,
   Manager: ROUTES.MANAGER.DASHBOARD, // Cambiado a teams como dashboard principal
-  Admin: ROUTES.ADMIN.INVITATIONS,
+  Admin: ROUTES.ADMIN.DASHBOARD,
 } as const;
 
 // Rutas protegidas que requieren autenticación

@@ -33,9 +33,12 @@ public class TeamRepository : ITeamRepository
     public async Task<Team?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         return await _context
-            .Teams.Include(t => t.Members)
+            .Teams
+            .Include(t => t.Members)
+            .Include(t => t.Creator)
+                .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)
-            .ThenInclude(rt => rt.Technology)
+                .ThenInclude(rt => rt.Technology)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
     }
 
@@ -48,19 +51,25 @@ public class TeamRepository : ITeamRepository
     public async Task<List<Team>> GetAllAsync(CancellationToken ct)
     {
         return await _context
-            .Teams.Include(t => t.Members)
+            .Teams
+            .Include(t => t.Members)
+            .Include(t => t.Creator)
+                .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)
-            .ThenInclude(rt => rt.Technology)
+                .ThenInclude(rt => rt.Technology)
             .ToListAsync(ct);
     }
 
     public async Task<List<Team>> GetByCreatorIdAsync(Guid creatorId, CancellationToken ct)
     {
         return await _context
-            .Teams.Where(t => t.CreatorId == creatorId)
+            .Teams
+            .Where(t => t.CreatorId == creatorId)
             .Include(t => t.Members)
+            .Include(t => t.Creator)
+                .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)
-            .ThenInclude(rt => rt.Technology)
+                .ThenInclude(rt => rt.Technology)
             .ToListAsync(ct);
     }
 }

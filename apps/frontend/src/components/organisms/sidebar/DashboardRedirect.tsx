@@ -24,7 +24,7 @@ export const DashboardRedirect = () => {
       case 'Manager':
         return '/teams';
       case 'Admin':
-        return '/admin/invitations';
+        return '/invitations';
       default:
         return '/login';
     }

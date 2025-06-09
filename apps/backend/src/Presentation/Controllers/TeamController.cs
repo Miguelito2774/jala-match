@@ -6,11 +6,13 @@ using Application.Commands.Teams.GenerateTeams;
 using Application.Commands.Teams.MoveTeamMember;
 using Application.Commands.Teams.RemoveTeamMember;
 using Application.DTOs;
+using Application.Queries.EmployeeProfiles.Complete;
 using Application.Queries.Teams.FindTeamMembers;
 using Application.Queries.Teams.GetAll;
 using Application.Queries.Teams.GetAvailableTeamsForMember;
 using Application.Queries.Teams.GetByCreatorId;
 using Application.Queries.Teams.GetById;
+using Application.Queries.Teams.GetByMemberId;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -334,6 +336,26 @@ public sealed class TeamsController : ControllerBase
         };
 
         return Task.FromResult(Results.Ok(criteria));
+    }
+
+    [HttpGet("my-teams")]
+    [Authorize(Roles = "Employee")]
+    public async Task<IResult> GetMyTeams()
+    {
+        Guid currentUserId = GetCurrentUserId();
+
+        var profileQuery = new GetEmployeeProfileByUserIdQuery(currentUserId);
+        Result<EmployeeProfileCompleteDto> profileResult = await _sender.Send(profileQuery);
+
+        if (profileResult.IsFailure)
+        {
+            return Results.NotFound("Profile not found");
+        }
+
+        var query = new GetTeamsByMemberIdQuery(profileResult.Value.Id);
+        Result<List<EmployeeTeamResponse>> result = await _sender.Send(query);
+
+        return result.Match(teams => Results.Ok(teams), CustomResults.Problem);
     }
 
     private Guid GetCurrentUserId()

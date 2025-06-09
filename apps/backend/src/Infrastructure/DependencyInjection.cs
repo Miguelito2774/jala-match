@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Net;
+using System.Net.Mail;
 using System.Text;
 using Application.Abstractions.Data;
 using Application.Abstractions.Repositories;
@@ -34,7 +37,8 @@ public static class DependencyInjection
             .AddHealthChecks(configuration)
             .AddAuthenticationInternal(configuration)
             .AddAuthorizationInternal()
-            .AddCacheInternal(configuration);
+            .AddCacheInternal(configuration)
+            .AddEmailServices(configuration);
     }
 
     private static IServiceCollection AddServices(
@@ -49,6 +53,8 @@ public static class DependencyInjection
         services.AddScoped<IEmployeeProfileRepository, EmployeeProfileRepository>();
         services.AddScoped<ITechnologyRepository, TechnologyRepository>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 
         services.AddHttpClient(
             "AIService",
@@ -166,6 +172,84 @@ public static class DependencyInjection
                 )
             )
             .AsHybridCache();
+
+        return services;
+    }
+
+    private static IServiceCollection AddEmailServices(
+        this IServiceCollection services,
+        IConfiguration configuration
+    )
+    {
+        string senderEmail =
+            Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL")
+            ?? configuration["Email:SenderEmail"]
+            ?? "noreply@jalamatch.com";
+        string senderName =
+            Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME")
+            ?? configuration["Email:SenderName"]
+            ?? "Jala Match";
+
+        string smtpHost =
+            Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST")
+            ?? configuration["Email:Smtp:Host"];
+        string smtpUsername =
+            Environment.GetEnvironmentVariable("EMAIL_SMTP_USERNAME")
+            ?? configuration["Email:Smtp:Username"];
+        string smtpPassword =
+            Environment.GetEnvironmentVariable("EMAIL_SMTP_PASSWORD")
+            ?? configuration["Email:Smtp:Password"];
+
+        if (
+            !string.IsNullOrEmpty(smtpHost)
+            && !string.IsNullOrEmpty(smtpUsername)
+            && !string.IsNullOrEmpty(smtpPassword)
+            && !smtpHost.StartsWith("${", StringComparison.Ordinal)
+            && !smtpUsername.StartsWith("${", StringComparison.Ordinal)
+            && !smtpPassword.StartsWith("${", StringComparison.Ordinal)
+        )
+        {
+            string portString =
+                Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT")
+                ?? configuration["Email:Smtp:Port"]
+                ?? "587";
+            string sslString =
+                Environment.GetEnvironmentVariable("EMAIL_SMTP_ENABLE_SSL")
+                ?? configuration["Email:Smtp:EnableSsl"]
+                ?? "true";
+
+            if (portString.StartsWith("${", StringComparison.Ordinal))
+            {
+                portString = "587";
+            }
+
+            if (sslString.StartsWith("${", StringComparison.Ordinal))
+            {
+                sslString = "true";
+            }
+
+            int smtpPort = int.Parse(portString, CultureInfo.InvariantCulture);
+            bool enableSsl = bool.Parse(sslString);
+            int smtpTimeout = configuration.GetValue<int>("Email:SmtpTimeoutMs", 30000);
+
+            services
+                .AddFluentEmail(senderEmail, senderName)
+                .AddSmtpSender(
+                    new SmtpClient(smtpHost)
+                    {
+                        Port = smtpPort,
+                        Credentials = new NetworkCredential(smtpUsername, smtpPassword),
+                        EnableSsl = enableSsl,
+                        Timeout = smtpTimeout,
+                        DeliveryMethod = SmtpDeliveryMethod.Network,
+                    }
+                );
+        }
+        else
+        {
+            // Configure FluentEmail with a mock sender for development
+            services.AddFluentEmail(senderEmail, senderName);
+        }
 
         return services;
     }

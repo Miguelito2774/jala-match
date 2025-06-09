@@ -28,6 +28,7 @@ public interface IApplicationDbContext
     DbSet<TechnicalArea> TechnicalAreas { get; }
     DbSet<RecommendedMember> RecommendedMembers { get; }
     DbSet<InvitationLink> InvitationLinks { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

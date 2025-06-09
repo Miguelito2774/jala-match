@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
-import { HelpCircle, LogOut, Mail, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
+import { HelpCircle, LogOut, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
 
 import { SidebarItem } from './SidebarItem';
 
@@ -60,18 +60,6 @@ const NAV_ITEMS: NavItem[] = [
   },
 
   // Rutas de admin
-  {
-    href: '/admin/invitations',
-    icon: Mail,
-    label: 'Invitar Managers',
-    roles: ['Admin'],
-  },
-  {
-    href: '/admin/users',
-    icon: Users,
-    label: 'Gestionar Usuarios',
-    roles: ['Admin'],
-  },
 
   // Rutas compartidas
   {

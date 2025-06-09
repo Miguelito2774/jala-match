@@ -30,4 +30,13 @@ public interface IAuthService
         string token,
         CancellationToken cancellationToken
     );
+    Task<Result<bool>> RequestPasswordResetAsync(
+        string email,
+        CancellationToken cancellationToken
+    );
+    Task<Result<bool>> ResetPasswordAsync(
+        string token,
+        string newPassword,
+        CancellationToken cancellationToken
+    );
 }

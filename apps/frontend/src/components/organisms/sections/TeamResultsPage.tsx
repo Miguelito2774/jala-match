@@ -125,8 +125,23 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
       requiredTechnologies: formData.requiredTechnologies,
     };
 
+    const updatedTeamData = {
+      ...teamData,
+      teams: [
+        {
+          ...teamData.teams[0],
+          members: currentTeamMembers,
+        },
+      ],
+      recommended_Leader: {
+        ...teamData.recommended_Leader,
+        id: currentLeader,
+        rationale: getCurrentLeaderRationale(),
+      },
+    };
+
     const requestData = buildCreateTeamRequest(
-      adaptGeneratedTeamToAITeamResponse(teamData),
+      adaptGeneratedTeamToAITeamResponse(updatedTeamData),
       teamBuilderData,
       currentLeader,
     );

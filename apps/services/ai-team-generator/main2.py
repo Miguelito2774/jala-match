@@ -36,7 +36,6 @@ class TeamMemberData(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
 
 class TechnicalRoleSpec(BaseModel):
     role: str = Field(..., alias="Role")  
@@ -44,7 +43,7 @@ class TechnicalRoleSpec(BaseModel):
     level: str = Field(..., alias="Level") 
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 class WeightsModel(BaseModel):
     sfia_weight: int = Field(alias="SfiaWeight")
@@ -57,7 +56,6 @@ class WeightsModel(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
 
 class TeamGenerationRequest(BaseModel):
     creator_id: str = Field(alias="CreatorId")
@@ -70,7 +68,6 @@ class TeamGenerationRequest(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
         
 class TeamMemberCompatibilityRequest(BaseModel):
     team: dict = Field(alias="Team")
@@ -78,7 +75,6 @@ class TeamMemberCompatibilityRequest(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
 
 class TeamAnalysisRequest(BaseModel):
     team_id: str = Field(alias="TeamId")
@@ -97,7 +93,6 @@ class TeamAnalysisRequest(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
 
 
 class FindTeamMemberRequest(BaseModel):
@@ -109,7 +104,6 @@ class FindTeamMemberRequest(BaseModel):
 
     class Config:
         populate_by_name = True
-        allow_population_by_field_name = True
 
 class TeamMemberRecommendation(BaseModel):
     employee_id: str
@@ -156,8 +150,15 @@ async def generate_teams(request: TeamGenerationRequest):
     await db_service.connect()
     
     try:
+        # Debug logging to see what data we're receiving
+        print(f"DEBUG - Request data:")
+        print(f"  requirements: {[req.model_dump(by_alias=True) for req in request.requirements]}")
+        print(f"  technologies: {request.technologies}")
+        print(f"  sfia_level: {request.sfia_level} (type: {type(request.sfia_level)})")
+        print(f"  availability: {request.availability} (type: {type(request.availability)})")
+        
         employees_data = await db_service.get_generation_candidates(
-            [req.dict(by_alias=True) for req in request.requirements],
+            [req.model_dump(by_alias=True) for req in request.requirements],
             request.technologies,
             request.sfia_level,
             request.availability
@@ -300,6 +301,14 @@ async def find_team_members(request: FindTeamMemberRequest):
     await db_service.connect()
     
     try:
+        # Debug logging to see what data we're receiving
+        print(f"DEBUG - Find team members request:")
+        print(f"  team_id: {request.team_id}")
+        print(f"  role: {request.role}")
+        print(f"  area: {request.area}")
+        print(f"  level: {request.level} (type: {type(request.level)})")
+        print(f"  technologies: {request.technologies}")
+        
         # Get team data reliably with direct database access
         team_data = await db_service.get_team_data(request.team_id)
         if not team_data:

@@ -79,4 +79,25 @@ public sealed class AuthController : ControllerBase
         );
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        Result<bool> result = await _authService.RequestPasswordResetAsync(
+            request.Email,
+            HttpContext.RequestAborted
+        );
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        Result<bool> result = await _authService.ResetPasswordAsync(
+            request.Token,
+            request.NewPassword,
+            HttpContext.RequestAborted
+        );
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
 }

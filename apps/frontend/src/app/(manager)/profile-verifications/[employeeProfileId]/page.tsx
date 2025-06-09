@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import { TextArea } from '@/components/atoms/inputs/TextArea';
+import { PageLoader } from '@/components/atoms/loaders/PageLoader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileVerifications, type ProfileForVerificationDto } from '@/hooks/useProfileVerifications';
 
@@ -116,20 +116,7 @@ export default function ProfileVerificationDetailPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Skeleton className="mb-8 h-8 w-48" />
-        <div className="grid gap-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-32" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <PageLoader title="Cargando perfil..." subtitle="Obteniendo información del perfil para verificación" />
       </div>
     );
   }
@@ -371,7 +358,7 @@ export default function ProfileVerificationDetailPage() {
                 <Button
                   onClick={handleApprove}
                   disabled={isProcessing}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />
                   {isProcessing ? 'Procesando...' : 'Aprobar Perfil'}
@@ -381,7 +368,7 @@ export default function ProfileVerificationDetailPage() {
                   onClick={handleReject}
                   disabled={isProcessing || !notes.trim()}
                   variant="destructive"
-                  className="w-full"
+                  className="w-full bg-red-600 text-white hover:bg-red-700"
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   {isProcessing ? 'Procesando...' : 'Rechazar Perfil'}

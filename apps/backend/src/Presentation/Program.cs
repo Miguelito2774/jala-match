@@ -1,5 +1,6 @@
 using Application;
 using Application.Abstractions.Data;
+using DotNetEnv;
 using HealthChecks.UI.Client;
 using Infrastructure;
 using Infrastructure.Database.Seeders;
@@ -9,6 +10,8 @@ using Presentation.Extensions;
 using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
 builder.Services.AddCors(options =>
     options.AddPolicy(

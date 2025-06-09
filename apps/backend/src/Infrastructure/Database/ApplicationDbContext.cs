@@ -34,6 +34,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<TechnicalArea> TechnicalAreas => Set<TechnicalArea>();
     public DbSet<RecommendedMember> RecommendedMembers => Set<RecommendedMember>();
     public DbSet<InvitationLink> InvitationLinks => Set<InvitationLink>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

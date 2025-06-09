@@ -26,9 +26,12 @@ export const RegisterForm = () => {
   const [isManagerRegistration, setIsManagerRegistration] = useState(false);
   const [invitationToken, setInvitationToken] = useState('');
   const [isValidatingInvitation, setIsValidatingInvitation] = useState(false);
+  const [registrationSuccessful, setRegistrationSuccessful] = useState(false);
 
   const validateInvitationToken = useCallback(
     async (token: string) => {
+      if (registrationSuccessful) return;
+
       setIsValidatingInvitation(true);
       try {
         const isValid = await validateInvitation(token);
@@ -43,7 +46,7 @@ export const RegisterForm = () => {
         setIsValidatingInvitation(false);
       }
     },
-    [validateInvitation],
+    [validateInvitation, registrationSuccessful],
   );
 
   useEffect(() => {
@@ -72,6 +75,9 @@ export const RegisterForm = () => {
       } else {
         authResponse = await registerEmployee(formData.email, formData.password);
       }
+
+      // Marcar el registro como exitoso antes de redirigir
+      setRegistrationSuccessful(true);
 
       // Use the role from the auth response instead of the context state
       const userRole = authResponse.user.role;

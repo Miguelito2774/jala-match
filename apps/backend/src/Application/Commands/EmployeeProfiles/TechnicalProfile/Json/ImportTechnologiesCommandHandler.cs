@@ -33,15 +33,13 @@ internal sealed class ImportTechnologiesCommandHandler(IApplicationDbContext con
         var createdIds = new List<Guid>();
 
         // Get all technologies and categories in memory to avoid EF translation issues
-        var allTechnologies = await context
-            .Technologies
-            .Include(t => t.Category)
+        List<Technology> allTechnologies = await context
+            .Technologies.Include(t => t.Category)
             .ToListAsync(cancellationToken);
 
         // Get existing employee technologies to avoid duplicates
-        var existingTechnologies = await context
-            .EmployeeTechnologies
-            .Where(et => et.EmployeeProfileId == employeeProfile.Id)
+        List<Guid> existingTechnologies = await context
+            .EmployeeTechnologies.Where(et => et.EmployeeProfileId == employeeProfile.Id)
             .Select(et => et.TechnologyId)
             .ToListAsync(cancellationToken);
 
@@ -49,8 +47,8 @@ internal sealed class ImportTechnologiesCommandHandler(IApplicationDbContext con
         {
             // Find technology by name and category (case-insensitive comparison in memory)
             Technology? technology = allTechnologies.FirstOrDefault(t =>
-                string.Equals(t.Name, dto.Name, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(t.Category.Name, dto.Category, StringComparison.OrdinalIgnoreCase)
+                string.Equals(t.Name, dto.Name, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(t.Category.Name, dto.Category, StringComparison.OrdinalIgnoreCase)
             );
 
             if (technology is null)

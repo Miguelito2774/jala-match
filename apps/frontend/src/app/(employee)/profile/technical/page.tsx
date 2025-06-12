@@ -480,9 +480,15 @@ export default function TechnicalProfilePage() {
 
     setIsImporting(true);
     try {
-      // Remove the selected and index properties before importing
-      const cleanedItems = selectedItems.map(({ selected: _selected, index: _index, ...item }) => item);
-      await importTechnologies(cleanedItems);
+      const transformedItems = selectedItems.map(({ selected: _selected, index: _index, ...item }) => ({
+        Name: item.name,
+        Category: item.category,
+        SfiaLevel: item.sfiaLevel,
+        YearsExperience: item.yearsExperience,
+        Version: item.version || 'Latest',
+      }));
+
+      await importTechnologies(transformedItems);
       toast.success(`${selectedItems.length} tecnologías importadas correctamente`);
       setJsonImportOpen(false);
       setJsonInput('');

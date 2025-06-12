@@ -26,7 +26,7 @@ public interface IAuthService
         Role targetRole,
         CancellationToken cancellationToken
     );
-    Task<Result<bool>> ValidateInvitationTokenAsync(
+    Task<Result<InvitationValidationResponse>> ValidateInvitationTokenAsync(
         string token,
         CancellationToken cancellationToken
     );

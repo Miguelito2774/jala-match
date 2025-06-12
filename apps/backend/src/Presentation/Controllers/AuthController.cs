@@ -73,7 +73,7 @@ public sealed class AuthController : ControllerBase
     [HttpGet("validate-invitation/{token}")]
     public async Task<IResult> ValidateInvitationToken(string token)
     {
-        Result<bool> result = await _authService.ValidateInvitationTokenAsync(
+        Result<InvitationValidationResponse> result = await _authService.ValidateInvitationTokenAsync(
             token,
             HttpContext.RequestAborted
         );

@@ -24,7 +24,7 @@ interface AuthContextType {
   registerManager: (email: string, password: string, invitationToken: string) => Promise<AuthResponse>;
   logout: () => void;
   isLoading: boolean;
-  validateInvitation: (token: string) => Promise<boolean>;
+  validateInvitation: (token: string) => Promise<{ isValid: boolean; targetRole?: string }>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isManager: boolean;
@@ -207,14 +207,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return data;
   };
 
-  const validateInvitation = async (token: string): Promise<boolean> => {
+  const validateInvitation = async (token: string): Promise<{ isValid: boolean; targetRole?: string }> => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/validate-invitation/${token}`, {
         method: 'GET',
       });
-      return res.ok;
+
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          isValid: data.isValid,
+          targetRole: transformRoleFromNumber(data.targetRole),
+        };
+      }
+
+      return { isValid: false };
     } catch {
-      return false;
+      return { isValid: false };
     }
   };
 

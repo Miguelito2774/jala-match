@@ -32,17 +32,26 @@ internal sealed class ImportTechnologiesCommandHandler(IApplicationDbContext con
         var employeeTechnologies = new List<EmployeeTechnology>();
         var createdIds = new List<Guid>();
 
+        // Get all technologies and categories in memory to avoid EF translation issues
+        var allTechnologies = await context
+            .Technologies
+            .Include(t => t.Category)
+            .ToListAsync(cancellationToken);
+
+        // Get existing employee technologies to avoid duplicates
+        var existingTechnologies = await context
+            .EmployeeTechnologies
+            .Where(et => et.EmployeeProfileId == employeeProfile.Id)
+            .Select(et => et.TechnologyId)
+            .ToListAsync(cancellationToken);
+
         foreach (TechnologyImportDto dto in request.Technologies)
         {
-            // Find technology by name and category
-            Technology? technology = await context
-                .Technologies.Include(t => t.Category)
-                .FirstOrDefaultAsync(
-                    t =>
-                        t.Name.Equals(dto.Name, StringComparison.OrdinalIgnoreCase)
-                        && t.Category.Name.Equals(dto.Category, StringComparison.OrdinalIgnoreCase),
-                    cancellationToken
-                );
+            // Find technology by name and category (case-insensitive comparison in memory)
+            Technology? technology = allTechnologies.FirstOrDefault(t =>
+                string.Equals(t.Name, dto.Name, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(t.Category.Name, dto.Category, StringComparison.OrdinalIgnoreCase)
+            );
 
             if (technology is null)
             {
@@ -51,13 +60,7 @@ internal sealed class ImportTechnologiesCommandHandler(IApplicationDbContext con
             }
 
             // Check if employee already has this technology
-            bool existingTechnology = await context.EmployeeTechnologies.AnyAsync(
-                et =>
-                    et.EmployeeProfileId == employeeProfile.Id && et.TechnologyId == technology.Id,
-                cancellationToken
-            );
-
-            if (existingTechnology)
+            if (existingTechnologies.Contains(technology.Id))
             {
                 // Skip if technology already exists for this employee
                 continue;

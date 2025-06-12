@@ -34,9 +34,11 @@ export const RegisterForm = () => {
 
       setIsValidatingInvitation(true);
       try {
-        const isValid = await validateInvitation(token);
-        if (isValid) {
+        const result = await validateInvitation(token);
+        if (result.isValid && result.targetRole === 'Manager') {
           setIsManagerRegistration(true);
+        } else if (result.isValid && result.targetRole !== 'Manager') {
+          setError('Esta invitación no es para el rol de manager');
         } else {
           setError('Token de invitación inválido o expirado');
         }
@@ -50,7 +52,7 @@ export const RegisterForm = () => {
   );
 
   useEffect(() => {
-    const token = searchParams?.get('invitation');
+    const token = searchParams?.get('token');
     if (token) {
       setInvitationToken(token);
       validateInvitationToken(token);

@@ -42,6 +42,12 @@ public sealed record CreateInvitationRequest
     public required Role TargetRole { get; init; }
 }
 
+public sealed record InvitationValidationResponse
+{
+    public required bool IsValid { get; init; }
+    public required Role TargetRole { get; init; }
+}
+
 public sealed record ForgotPasswordRequest
 {
     public required string Email { get; init; }

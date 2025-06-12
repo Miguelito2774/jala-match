@@ -7,6 +7,16 @@ import { useRouter } from 'next/navigation';
 import { Select } from '@/components/atoms/inputs/Select';
 import { TextArea } from '@/components/atoms/inputs/TextArea';
 import { PageLoader } from '@/components/atoms/loaders/PageLoader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -167,6 +177,8 @@ export default function WorkExperiencePage() {
   // Modal states
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<WorkExperience | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [experienceToDelete, setExperienceToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // JSON Import states
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
@@ -217,16 +229,22 @@ export default function WorkExperiencePage() {
     setEditingProject(experience);
   };
 
-  const handleDelete = async (experienceId: string, projectName: string) => {
-    if (!confirm(`¿Está seguro de que desea eliminar el proyecto "${projectName}"?`)) {
-      return;
-    }
+  const handleDelete = (experienceId: string, projectName: string) => {
+    setExperienceToDelete({ id: experienceId, name: projectName });
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!experienceToDelete) return;
 
     try {
-      await deleteExperience(experienceId);
+      await deleteExperience(experienceToDelete.id);
       toast.success('Proyecto eliminado exitosamente');
     } catch (_err) {
       toast.error('Error al eliminar el proyecto');
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setExperienceToDelete(null);
     }
   };
 
@@ -940,6 +958,32 @@ export default function WorkExperiencePage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">¿Eliminar proyecto?</AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              ¿Estás seguro de que quieres eliminar el proyecto &quot;{experienceToDelete?.name}&quot;? Esta acción no
+              se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Overlay for AlertDialog */}
+      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

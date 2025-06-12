@@ -280,7 +280,7 @@ public sealed class AuthService : IAuthService
         };
     }
 
-    public async Task<Result<bool>> ValidateInvitationTokenAsync(
+    public async Task<Result<InvitationValidationResponse>> ValidateInvitationTokenAsync(
         string token,
         CancellationToken cancellationToken
     )
@@ -291,8 +291,12 @@ public sealed class AuthService : IAuthService
         );
 
         return invitation != null
-            ? Result.Success(true)
-            : Result.Failure<bool>(
+            ? Result.Success(new InvitationValidationResponse 
+            { 
+                IsValid = true, 
+                TargetRole = invitation.TargetRole 
+            })
+            : Result.Failure<InvitationValidationResponse>(
                 new Error(
                     "Auth.InvalidInvitation",
                     "Token de invitación inválido o expirado",

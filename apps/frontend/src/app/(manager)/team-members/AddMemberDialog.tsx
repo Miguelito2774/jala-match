@@ -370,8 +370,8 @@ export const AddTeamMemberComponent = ({ teamId, onMembersAdded }: AddTeamMember
                       </div>
 
                       <div className="mb-3 flex flex-wrap gap-1">
-                        {member.technologies.map((tech, index) => (
-                          <Badge key={index} variant="outline" className="bg-blue-50">
+                        {member.technologies.map((tech) => (
+                          <Badge key={`${member.employee_id}-tech-${tech}`} variant="outline" className="bg-blue-50">
                             {tech}
                           </Badge>
                         ))}

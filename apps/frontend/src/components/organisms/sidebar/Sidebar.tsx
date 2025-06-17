@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
-import { HelpCircle, LogOut, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
+import { HelpCircle, LogOut, Menu, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
 
 import { SidebarItem } from './SidebarItem';
 
@@ -62,12 +62,12 @@ const NAV_ITEMS: NavItem[] = [
   // Rutas de admin
 
   // Rutas compartidas
-  {
-    href: '/settings',
-    icon: Settings,
-    label: 'Configuración',
-    roles: ['Employee', 'Manager', 'Admin'],
-  },
+  //{
+  // href: '/settings',
+  //icon: Settings,
+  //label: 'Configuración',
+  //roles: ['Employee', 'Manager', 'Admin'],
+  //},
 ];
 
 export const Sidebar = () => {

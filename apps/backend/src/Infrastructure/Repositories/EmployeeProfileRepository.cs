@@ -17,8 +17,7 @@ public class EmployeeProfileRepository : IEmployeeProfileRepository
     public async Task<EmployeeProfile?> GetByIdAsync(Guid id)
     {
         return await _context
-            .EmployeeProfiles
-            .Include(p => p.User) // Include User to load email information
+            .EmployeeProfiles.Include(p => p.User) // Include User to load email information
             .Include(p => p.Technologies)
             .Include(p => p.Languages)
             .Include(p => p.WorkExperiences)
@@ -46,9 +45,31 @@ public class EmployeeProfileRepository : IEmployeeProfileRepository
     public async Task<List<EmployeeProfile>> GetAvailableProfilesAsync()
     {
         return await _context
-            .EmployeeProfiles
-            .Include(p => p.User) // Include User to load email information
+            .EmployeeProfiles.Include(p => p.User) // Include User to load email information
             .Where(p => p.Availability)
             .ToListAsync();
+    }
+
+    public async Task<EmployeeProfile?> GetByUserIdWithAllDataAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await _context
+            .EmployeeProfiles.Include(p => p.User)
+            .Include(p => p.Technologies)
+            .ThenInclude(et => et.Technology)
+            .ThenInclude(t => t.Category)
+            .Include(p => p.Languages)
+            .Include(p => p.WorkExperiences)
+            .Include(p => p.PersonalInterests)
+            .Include(p => p.TeamMemberships)
+            .ThenInclude(tm => tm.Team)
+            .ThenInclude(t => t!.RequiredTechnologies)
+            .ThenInclude(rt => rt.Technology)
+            .Include(p => p.SpecializedRoles)
+            .ThenInclude(sr => sr.SpecializedRole)
+            .ThenInclude(sr => sr.TechnicalArea)
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
     }
 }

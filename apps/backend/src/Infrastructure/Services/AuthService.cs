@@ -6,6 +6,7 @@ using Application.Abstractions.Services;
 using Application.DTOs;
 using Domain.Entities.Enums;
 using Domain.Entities.Invitations;
+using Domain.Entities.Privacy;
 using Domain.Entities.Profiles;
 using Domain.Entities.Users;
 using Infrastructure.Authentication;
@@ -107,8 +108,20 @@ public sealed class AuthService : IAuthService
             VerificationNotes = null,
         };
 
+        // Create default privacy consent for new user
+        var privacyConsent = new UserPrivacyConsent
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TeamMatchingAnalysis = true,
+            CreatedAt = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow,
+            Version = "1.0"
+        };
+
         _context.Users.Add(user);
         _context.EmployeeProfiles.Add(profile);
+        _context.UserPrivacyConsents.Add(privacyConsent);
         await _context.SaveChangesAsync(cancellationToken);
 
         string token = GenerateJwtToken(user);
@@ -175,10 +188,22 @@ public sealed class AuthService : IAuthService
             ProfilePictureUrl = null,
         };
 
+        // Create default privacy consent for new manager
+        var privacyConsent = new UserPrivacyConsent
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TeamMatchingAnalysis = false, // Managers typically don't participate in team matching
+            CreatedAt = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow,
+            Version = "1.0"
+        };
+
         invitation.IsUsed = true;
         invitation.UsedAt = DateTime.UtcNow;
 
         _context.Users.Add(user);
+        _context.UserPrivacyConsents.Add(privacyConsent);
         await _context.SaveChangesAsync(cancellationToken);
 
         string token = GenerateJwtToken(user);

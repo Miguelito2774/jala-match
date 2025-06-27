@@ -10,6 +10,26 @@ class TeamDatabaseService:
         
     async def disconnect(self):
         await self.db.disconnect()
+    
+    def _get_privacy_filter(self):
+        """
+        Returns privacy filter for team matching based on user consent.
+        
+        GDPR Implementation: Only includes employees who have explicitly 
+        consented to 'team_matching_analysis' in their privacy settings.
+        
+        Impact: Employees with team_matching_analysis=false will NOT appear
+        in team suggestions or automatic team generation.
+        """
+        # Only include employees who have consented to team matching analysis
+        return """
+          AND EXISTS (
+            SELECT 1 FROM public.user_privacy_consents upc
+            JOIN public.users u ON u.id = upc.user_id
+            WHERE u.id = ep.user_id 
+              AND upc.team_matching_analysis = true
+          )
+        """
         
     async def get_team_data(self, team_id):
         # Direct SQL query for team data
@@ -105,6 +125,9 @@ class TeamDatabaseService:
             else ""
         )
 
+        # Privacy filter - only include employees who consent to team matching
+        privacy_filter = self._get_privacy_filter()
+
         sql = f"""
         SELECT
             ep.id AS employee_id,
@@ -143,6 +166,7 @@ class TeamDatabaseService:
           {area_filter}
           {level_filter}
           {tech_filter}
+          {privacy_filter}
         ORDER BY has_required_tech DESC, ep.sfia_level_general DESC
         LIMIT 15;
         """
@@ -196,6 +220,9 @@ class TeamDatabaseService:
         avail_filter = f"AND ep.availability = {str(availability).lower()}"
         sfia_filter = f"AND ep.sfia_level_general >= {min_sfia_level}" if min_sfia_level is not None else ""
         verification_filter = f"AND ep.verification_status = '{verification_value}'"
+        
+        # Privacy filter - only include employees who consent to team matching
+        privacy_filter = self._get_privacy_filter()
 
         sql = f"""
         SELECT
@@ -229,6 +256,7 @@ class TeamDatabaseService:
           {verification_filter}
           {req_filter}
           {tech_filter}
+          {privacy_filter}
         ORDER BY ep.sfia_level_general DESC
         LIMIT 20;
         """

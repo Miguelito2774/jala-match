@@ -1,6 +1,7 @@
 using Application.Abstractions.Data;
 using Domain.Entities.Areas_Roles;
 using Domain.Entities.Invitations;
+using Domain.Entities.Privacy;
 using Domain.Entities.Profiles;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
@@ -35,6 +36,11 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<RecommendedMember> RecommendedMembers => Set<RecommendedMember>();
     public DbSet<InvitationLink> InvitationLinks => Set<InvitationLink>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
+    // Privacy-related DbSets
+    public DbSet<UserPrivacyConsent> UserPrivacyConsents => Set<UserPrivacyConsent>();
+    public DbSet<DataDeletionOrder> DataDeletionRequests => Set<DataDeletionOrder>();
+    public DbSet<PrivacyAuditLog> PrivacyAuditLogs => Set<PrivacyAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

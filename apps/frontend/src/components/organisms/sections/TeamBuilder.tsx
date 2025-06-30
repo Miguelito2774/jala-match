@@ -405,10 +405,10 @@ export const TeamBuilder = () => {
             {generatingTeam ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generando...
+                Buscando a los mejores candidatos...
               </>
             ) : (
-              'Generar Equipos'
+              'Generar Equipos con IA'
             )}
           </Button>
         </div>

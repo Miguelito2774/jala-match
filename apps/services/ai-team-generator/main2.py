@@ -172,113 +172,196 @@ async def generate_teams(request: TeamGenerationRequest):
         employees_json = json.dumps(employees_data, ensure_ascii=False, default=str)
         
         prompt = f"""
-        # Análisis de Formación de Equipos
+        # 🚀 GENERADOR INTELIGENTE DE EQUIPOS DE TRABAJO - Análisis Completo y Amigable
 
-        ## Datos de Empleados Disponibles
+        Eres un experto consultor en recursos humanos y formación de equipos. Tu trabajo es crear el mejor equipo posible y explicar TODO de manera que cualquier persona pueda entender fácilmente tus decisiones.
+
+        ## 📊 Datos de Empleados Disponibles
         ```json
         {employees_json}
         ```
 
-        ## Requisitos del Equipo
-        - Tamaño del equipo: {request.team_size}
-        - Roles requeridos: {[role.role for role in request.requirements]}
-        - Areas requeridas: {[req.area for req in request.requirements]}
-        - Tecnologías requeridas: {request.technologies}
-        - Nivel SFIA mínimo: {request.sfia_level}
+        ## 🎯 Lo Que Me Han Pedido Crear
+        - 👥 Necesito formar un equipo de: {request.team_size} personas
+        - 💼 Para estos roles específicos: {[role.role for role in request.requirements]} 
+        - 📋 Con estos niveles de experiencia: {[req.level for req in request.requirements]}
+        - 🏢 En estas áreas de trabajo: {[req.area for req in request.requirements]}
+        - 💻 Que dominen estas tecnologías: {request.technologies}
+        - 📈 Con un nivel SFIA mínimo de: {request.sfia_level}
 
-        ## Criterios de Evaluación (Ponderados)
-        - Compatibilidad de Nivel SFIA: {request.weights.sfia_weight}%
-        - Compatibilidad Técnica: {request.weights.technical_weight}%
-        - Compatibilidad Psicológica basada en MBTI: {request.weights.psychological_weight}%
-        - Nivel de Experiencia: {request.weights.experience_weight}%
-        - Dominio del Idioma: {request.weights.language_weight}%
-        - Compatibilidad basada en Intereses: {request.weights.interests_weight}%
-        - Consideración de Zona Horaria: {request.weights.timezone_weight}%
+        ## ⚖️ PRIORIDADES DEL MANAGER - ¡Estos Son Los Criterios Más Importantes!
+        El manager me ha dado estos pesos para priorizar qué es más importante:
 
-        ## Principios de Formación de Equipos
-        1. Asegurar cobertura de roles con niveles SFIA apropiados
-        2. Equilibrar experiencia técnica en las tecnologías requeridas
-        3. Crear diversidad psicológica mientras se minimizan patrones de conflicto severos
-        4. Incorporar intereses complementarios para la cohesión del equipo
-        5. Equilibrar niveles de experiencia (junior a senior) para transferencia de conocimiento
-        6. Considerar superposición de zonas horarias para colaboración efectiva
-        7. Incluir entre 3-5 miembros recomendados en 'recommended_Members' que:
-        - No fueron seleccionados en el equipo principal
-        - Tengan al menos 70% de compatibilidad
-        - Complementen las habilidades del equipo principal
-        - Sean relevantes para los roles y tecnologías requeridas
+        - 🎯 Nivel SFIA (Competencia Técnica): {request.weights.sfia_weight}% de importancia
+        - 💻 Experiencia en Tecnologías: {request.weights.technical_weight}% de importancia  
+        - 🧠 Compatibilidad de Personalidades: {request.weights.psychological_weight}% de importancia
+        - 📅 Años de Experiencia: {request.weights.experience_weight}% de importancia
+        - 🗣️ Habilidades de Comunicación: {request.weights.language_weight}% de importancia
+        - 🎨 Intereses y Hobbies Compartidos: {request.weights.interests_weight}% de importancia
+        - 🌍 Zona Horaria y Ubicación: {request.weights.timezone_weight}% de importancia
 
-        ### IMPORTANTE:
-        - UTILIZA ÚNICAMENTE los empleados proporcionados en los datos JSON arriba
-        - NO inventes empleados ni información que no esté en los datos proporcionados
-        - Si no hay suficientes empleados para cumplir con todos los criterios, usa los mejores disponibles
-        - El equipo debe formarse con los empleados reales de los datos proporcionados
+        ## 📚 GUÍA PARA ENTENDER TODO - Explicado de Manera Simple
 
-        ## Formato de Respuesta Requerido
-        Responde EXCLUSIVAMENTE con un objeto JSON con la siguiente estructura exacta, sin texto adicional:
+        ### 🎓 ¿Qué Significan los Niveles SFIA? (Marco de Competencias Técnicas)
+        Piensa en SFIA como los "niveles de videojuego" de las habilidades técnicas:
+
+        **SFIA Nivel 1-2**: 🌱 "El Aprendiz"
+        - Como un conductor novato que necesita instructor al lado
+        - Requiere supervisión constante y mucha ayuda
+        - Perfecto para roles de prácticas o trainee
+
+        **SFIA Nivel 3**: 🚗 "El Conductor Independiente" 
+        - Como alguien que ya maneja solo pero a veces pregunta direcciones
+        - Puede trabajar de forma independiente con orientación ocasional
+        - ¡PERFECTO para roles "Junior"! (No confundir: puede tener años de experiencia)
+
+        **SFIA Nivel 4**: 🏎️ "El Conductor Experimentado"
+        - Como un chofer profesional que puede enseñar a otros
+        - Puede mentorear y guiar a niveles más bajos
+        - Ideal para roles "Semi-Senior" o "Mid-Level"
+
+        **SFIA Nivel 5**: 🏁 "El Instructor de Manejo"
+        - Como el jefe de una escuela de manejo
+        - Liderazgo técnico, toma decisiones complejas
+        - Perfecto para roles "Senior" y "Tech Lead"
+
+        **SFIA Nivel 6-7**: 🛣️ "El Planificador de Carreteras"
+        - Como quien diseña las autopistas de todo el país
+        - Arquitecto de sistemas, visión estratégica
+        - Para roles de "Arquitecto" o "Principal"
+
+        **🔥 SÚPER IMPORTANTE**: El nivel SFIA NO es lo mismo que "junior/senior" en el trabajo. 
+        Alguien puede tener SFIA 3 y 10 años de experiencia, sigue siendo perfecto para un rol "Junior" específico.
+
+        ### 🧩 ¿Qué Significan las Personalidades MBTI? (Los "Superpoderes" de Cada Persona)
+
+        **ENFP - "El Motivador Estrella" 🌟**
+        - Como el mejor animador de fiestas, pero para el trabajo
+        - Superpoder: Genera entusiasmo contagioso y levanta el ánimo del equipo
+        - Perfecto para: Brainstorming, motivar cuando hay problemas, generar ideas creativas
+
+        **ENTP - "El Innovador Rebelde" 💡**
+        - Como un inventor loco que siempre encuentra soluciones únicas
+        - Superpoder: Ve problemas desde ángulos que nadie más ve
+        - Perfecto para: Resolver problemas complejos, desafiar ideas, encontrar mejores maneras de hacer las cosas
+
+        **INFP - "El Pacificador Empático" 🕊️**
+        - Como un diplomático que resuelve conflictos sin que nadie se enoje
+        - Superpoder: Mantiene la armonía y se preocupa genuinamente por todos
+        - Perfecto para: Mediar conflictos, mantener moral alta, asegurar que todos se sientan valorados
+
+        **INTJ - "El Arquitecto Maestro" 🏗️**
+        - Como un gran maestro de ajedrez que planifica 10 movimientos adelante
+        - Superpoder: Visión a largo plazo y planes estratégicos perfectos
+        - Perfecto para: Arquitectura de sistemas, planificación a largo plazo, decisiones estratégicas
+
+        **ENFJ - "El Líder Natural" 👑**
+        - Como un entrenador que saca lo mejor de cada jugador
+        - Superpoder: Desarrolla el potencial de otros y coordina perfectamente
+        - Perfecto para: Liderar equipos, mentorear, coordinar proyectos complejos
+
+        **ISTJ - "El Guardián de la Calidad" 🛡️**
+        - Como un inspector de calidad que nunca deja pasar un error
+        - Superpoder: Procesos perfectos, confiabilidad absoluta, atención al detalle
+        - Perfecto para: Asegurar calidad, crear procesos, mantener estabilidad
+
+        ## 🎯 INSTRUCCIONES SÚPER ESPECÍFICAS PARA CREAR EL MEJOR EQUIPO
+
+        ### 📋 Lo Que DEBES Hacer:
+        1. **Respeta LOS PESOS** como si fuera ley: Si el manager puso 25% en tecnología, ¡eso es SÚPER importante!
+        2. **Explica TODO como si fueras un profesor**: Cada decisión debe tener una explicación que mi abuela entendería
+        3. **Personalidades que se complementen**: Como piezas de rompecabezas que encajan perfectamente
+        4. **Niveles SFIA apropiados**: No asumas que SFIA = senioridad laboral
+        5. **Detalla las FORTALEZAS**: Explica por qué este equipo va a ser increíble
+        6. **Identifica DEBILIDADES**: Sé honesto sobre qué podría ser problemático
+        7. **Recomienda alternativas**: Otros candidatos que podrían ser útiles
+
+        ### 🚨 Lo Que NO Debes Hacer:
+        - NO inventes empleados que no están en los datos
+        - NO asumas que SFIA 5 = "Senior" automáticamente
+        - NO hagas explicaciones cortas y aburridas
+        - NO ignores los pesos que me dieron
+        - NO uses jerga técnica sin explicar
+
+        ## 📝 FORMATO DE RESPUESTA - ¡Hazlo Súper Detallado y Amigable!
+
+        Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura, pero llena cada campo con explicaciones LARGAS y DETALLADAS:
 
         ```json
         {{
           "teams": [
             {{
-              "team_id": "guid-aleatorio-aquí",
+              "team_id": "guid aleatorio aqui",
               "members": [
                 {{
-                  "id": "guid-del-miembro-real-de-los-datos",
-                  "name": "Nombre del Miembro",
-                  "role": "Rol del Miembro",
-                  "sfia_level": 5
+                  "id": "id-real-del-empleado-de-los-datos",
+                  "name": "Nombre Completo",
+                  "role": "Su Rol",
+                  "sfia_level": 4
                 }}
               ]
             }}
           ],
           "recommended_leader": {{
-            "id": "guid-del-líder-real-de-los-datos",
+            "id": "id-real-del-empleado-lider",
             "name": "Nombre del Líder",
-            "rationale": "Justificación detallada de por qué esta persona es el líder recomendado"
+            "rationale": "🎯 EXPLICACIÓN SÚPER DETALLADA: Explica paso a paso por qué esta persona es el líder perfecto. Menciona: 1) Su nivel SFIA específico y qué significa eso en términos simples (ej: SFIA 4 significa que puede trabajar independiente Y enseñar a otros), 2) Su personalidad MBTI y por qué es perfecta para liderar (ej: ENFJ significa que es líder natural que desarrolla a otros), 3) Su experiencia técnica específica, 4) Cómo su estilo de liderazgo complementa a las personalidades del equipo"
           }},
           "team_analysis": {{
             "strengths": [
-              "Fortaleza 1 explicada en detalle",
-              "Fortaleza 2 explicada en detalle",
-              "Fortaleza 3 explicada en detalle"
+              "💪 FORTALEZA TÉCNICA DETALLADA: Explica en 3-4 oraciones completas cómo las habilidades técnicas del equipo son perfectas para el proyecto. Menciona tecnologías específicas, niveles SFIA de cada miembro y qué significa eso en la práctica diaria. Explica cómo los pesos de criterios (ej: {request.weights.technical_weight}% técnico) influyeron en elegir estas personas.",
+              "🧠 FORTALEZA DE COMPETENCIAS SFIA EXPLICADA: Describe en detalle qué nivel SFIA tiene cada miembro y qué significa eso en términos que cualquiera entienda. Por ejemplo: 'María tiene SFIA 3, lo que significa que puede trabajar sola pero pregunta cuando tiene dudas, perfecto para un rol Junior. Juan tiene SFIA 5, lo que significa que puede liderar técnicamente y enseñar a otros.' NO asumas que SFIA = senioridad laboral.",
+              "🤝 FORTALEZA DE PERSONALIDADES COMPLEMENTARIAS: Explica en detalle cómo cada personalidad MBTI aporta algo único y cómo se complementan. Por ejemplo: 'Ana (ENTP) aporta innovación y encuentra soluciones creativas cuando hay problemas, Pedro (INFP) mantiene la armonía cuando hay tensiones, y Luis (ISTJ) asegura que todo se haga con calidad y procesos correctos. Juntos forman un equilibrio perfecto entre creatividad, armonía y estructura.'"
             ],
             "weaknesses": [
-              "Debilidad 1 explicada en detalle",
-              "Debilidad 2 explicada en detalle"
+              "⚠️ DEBILIDAD ESPECÍFICA EXPLICADA: Identifica una limitación real del equipo y explica por qué podría ser problemática. Usa ejemplos concretos.",
+              "🔧 RIESGO TECNOLÓGICO DETALLADO: Explica si hay dependencia excesiva en ciertas tecnologías, falta de diversidad técnica, o algún gap tecnológico importante. Da ejemplos específicos.",
+              "📊 RIESGO OPERACIONAL EXPLICADO: Analiza factores como distribución de carga de trabajo, zonas horarias, posibles cuellos de botella, o conflictos de personalidad que podrían surgir."
             ],
-            "compatibility": "Justificación extensa y detallada sobre la compatibilidad del equipo, considerando los criterios técnicos, psicológicos y operativos. Analiza en profundidad cómo los perfiles se complementan entre sí y por qué funcionarían bien juntos como un equipo multidisciplinario."
+            "compatibility": "🎯 ANÁLISIS INTEGRAL SÚPER DETALLADO (mínimo 200 palabras): Este debe ser un análisis completo que incluya: 1) Explicación específica de cómo CADA peso de criterio ({request.weights.sfia_weight}% SFIA, {request.weights.technical_weight}% técnico, {request.weights.psychological_weight}% psicológico, etc.) influyó en la selección del equipo - da ejemplos concretos, 2) Descripción clara de qué significa cada nivel SFIA presente en el equipo y sus implicaciones para el trabajo diario (ej: 'SFIA 3 significa que puede hacer tareas complejas solo pero necesita guidance ocasional'), 3) Análisis detallado de cada personalidad MBTI del equipo y cómo contribuye específicamente al éxito - explica las sinergias entre personalidades con ejemplos, 4) Evaluación de la alineación con los niveles solicitados ({[req.level for req in request.requirements]}) explicando por qué los niveles SFIA seleccionados son apropiados SIN asumir que equivalen a senioridad laboral"
           }},
-          "compatibility_score": 85,
+          "compatibility_score": 87,
           "recommended_Members": [
             {{
-              "id": "guid-del-miembro-recomendado-real-de-los-datos",
-              "name": "Nombre del Miembro",
-              "compatibility_score": 75,
-              "analysis": "Justificación detallada de por qué sería una buena adición al equipo, incluyendo fortalezas complementarias y sinergias",
+              "id": "id-real-del-candidato-alternativo",
+              "name": "Nombre del Candidato",
+              "compatibility_score": 78,
+              "analysis": "🔍 ANÁLISIS DETALLADO DEL CANDIDATO (mínimo 100 palabras): Explica paso a paso por qué este candidato sería genial para el equipo: 1) Su nivel SFIA específico y qué significa en términos simples para el trabajo diario, 2) Su personalidad MBTI y cómo complementaría específicamente a las personalidades ya en el equipo (da ejemplos de interacciones), 3) Sus fortalezas técnicas únicas y cómo llenarían gaps, 4) Por qué no fue seleccionado para el equipo principal pero sigue siendo valioso",
               "potential_conflicts": [
-                "Conflicto potencial 1 detallado que requiere atención",
-                "Conflicto potencial 2 detallado que requiere atención"
+                "⚡ CONFLICTO POTENCIAL ESPECÍFICO: Describe exactamente qué tipo de fricción podría surgir y por qué. Por ejemplo: 'Su personalidad INTJ (planificador estructurado) podría chocar con el estilo más espontáneo del equipo actual, especialmente con Juan (ENFP) que prefiere improvisar.'",
+                "⚡ RIESGO OPERACIONAL ESPECÍFICO: Identifica otro riesgo concreto con ejemplos. Por ejemplo: 'Está en zona horaria diferente (GMT-3 vs GMT-5 del resto del equipo), lo que podría dificultar las reuniones diarias.'"
               ],
-              "team_impact": "Análisis detallado de cómo este nuevo miembro cambiaría la dinámica del equipo, incluyendo aspectos positivos y posibles desafíos"
+              "team_impact": "📈 IMPACTO DETALLADO EN EL EQUIPO (mínimo 100 palabras): Explica específicamente cómo este miembro cambiaría la dinámica del equipo: 1) Cómo su personalidad MBTI específica afectaría las interacciones diarias del equipo con ejemplos concretos, 2) Qué nuevas capacidades técnicas aportaría y cómo eso beneficiaría al proyecto, 3) Cómo su nivel SFIA se integraría con la estructura existente del equipo, 4) Qué beneficios específicos y qué desafíos de gestión traería al equipo"
             }}
           ]
         }}
         ```
-        
-        IMPORTANTE:
-        1. Tu respuesta debe ser ÚNICAMENTE el objeto JSON válido, sin texto explicativo.
-        2. Las fortalezas y debilidades deben ser explicaciones detalladas, no solo puntos breves.
-        3. La justificación de compatibilidad debe ser un análisis profundo de la dinámica del equipo.
-        4. El team_id debe ser un GUID aleatorio en formato estándar (por ejemplo, "123e4567-e89b-12d3-a456-426614174000").
-        5. Para los miembros del equipo, usa EXACTAMENTE los mismos ids que aparecen en los datos de empleados proporcionados.
-        6. La respuesta debe estar en español.
-        7. Solo puedes incluir empleados que existan en los datos proporcionados.
+
+        ## 🎯 REGLAS FINALES SÚPER IMPORTANTES:
+
+        1. **Tu respuesta debe ser ÚNICAMENTE el objeto JSON válido** - sin texto antes o después
+        2. **Cada explicación debe ser LARGA y DETALLADA** - mínimo 2-3 oraciones por fortaleza/debilidad
+        3. **Usa EJEMPLOS ESPECÍFICOS** - no digas "buen comunicador", di "puede explicar conceptos técnicos complejos de manera simple"
+        4. **Explica TODOS los acrónimos y términos técnicos** - como si le hablaras a alguien que no sabe nada de tech
+        5. **Usa EXACTAMENTE los IDs de empleados** que están en los datos proporcionados
+        6. **Genera un GUID aleatorio válido** para el team_id (formato: 12345678-1234-1234-1234-123456789012)
+        7. **TODO en español** y con un tono amigable y explicativo
+        8. **JAMÁS inventes empleados** - solo usa los que están en los datos JSON
+
+        ## 💡 RECUERDA: 
+        Tu objetivo es que cualquier manager, sin importar su nivel técnico, pueda leer tu respuesta y entender PERFECTAMENTE:
+        - Por qué elegiste a cada persona
+        - Qué significa cada nivel SFIA en términos prácticos  
+        - Cómo las personalidades se van a complementar en el día a día
+        - Qué fortalezas y debilidades reales tiene el equipo
+        - Por qué respetaste los pesos de criterios que te dieron
+
+        ¡Hazlo súper detallado y amigable! 🚀
         """
 
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=4000,
+            max_tokens=6000,
             temperature=0.2,
             messages=[{"role": "user", "content": prompt}],
         )

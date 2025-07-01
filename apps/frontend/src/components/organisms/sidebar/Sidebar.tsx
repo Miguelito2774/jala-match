@@ -21,7 +21,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   // Rutas de empleado
   {
-    href: 'profile',
+    href: '/profile',
     icon: UserCircle,
     label: 'Mi Perfil',
     roles: ['Employee'],
@@ -39,7 +39,7 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['Employee'],
   },
   {
-    href: 'settings',
+    href: '/settings',
     icon: Settings,
     label: 'Configuración',
     roles: ['Employee'],

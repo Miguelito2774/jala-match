@@ -283,7 +283,12 @@ async def generate_teams(request: TeamGenerationRequest):
         - NO ignores los pesos que me dieron
         - NO uses jerga técnica sin explicar
 
-        ## 📝 FORMATO DE RESPUESTA - ¡Hazlo Súper Detallado y Amigable!
+        ## � REGLA CRÍTICA PARA EL LÍDER:
+        El "recommended_leader" DEBE ser uno de los miembros que incluiste en el equipo.
+        NO inventes un líder nuevo. NO uses IDs que no estén en la lista de miembros del equipo.
+        Selecciona al MEJOR líder de entre los miembros del equipo que ya formaste.
+
+        ## �📝 FORMATO DE RESPUESTA - ¡Hazlo Súper Detallado y Amigable!
 
         Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura, pero llena cada campo con explicaciones LARGAS y DETALLADAS:
 
@@ -303,9 +308,9 @@ async def generate_teams(request: TeamGenerationRequest):
             }}
           ],
           "recommended_leader": {{
-            "id": "id-real-del-empleado-lider",
-            "name": "Nombre del Líder",
-            "rationale": "🎯 EXPLICACIÓN SÚPER DETALLADA: Explica paso a paso por qué esta persona es el líder perfecto. Menciona: 1) Su nivel SFIA específico y qué significa eso en términos simples (ej: SFIA 4 significa que puede trabajar independiente Y enseñar a otros), 2) Su personalidad MBTI y por qué es perfecta para liderar (ej: ENFJ significa que es líder natural que desarrolla a otros), 3) Su experiencia técnica específica, 4) Cómo su estilo de liderazgo complementa a las personalidades del equipo"
+            "id": "DEBE SER EL ID DE UNO DE LOS MIEMBROS DEL EQUIPO ARRIBA",
+            "name": "DEBE SER EL NOMBRE DE UNO DE LOS MIEMBROS DEL EQUIPO ARRIBA",
+            "rationale": "🎯 EXPLICACIÓN SÚPER DETALLADA: Explica paso a paso por qué ESTA PERSONA DEL EQUIPO es el líder perfecto. IMPORTANTE: El líder DEBE ser uno de los miembros que ya incluiste en el equipo. NO inventes un líder nuevo. Selecciona el mejor líder de entre los miembros del equipo y explica por qué."
           }},
           "team_analysis": {{
             "strengths": [
@@ -347,12 +352,14 @@ async def generate_teams(request: TeamGenerationRequest):
         6. **Genera un GUID aleatorio válido** para el team_id (formato: 12345678-1234-1234-1234-123456789012)
         7. **TODO en español** y con un tono amigable y explicativo
         8. **JAMÁS inventes empleados** - solo usa los que están en los datos JSON
+        9. **🚨 CRÍTICO: El recommended_leader DEBE ser uno de los miembros del equipo** - NO inventes un líder nuevo
 
         ## 💡 RECUERDA: 
         Tu objetivo es que cualquier manager, sin importar su nivel técnico, pueda leer tu respuesta y entender PERFECTAMENTE:
         - Por qué elegiste a cada persona
         - Qué significa cada nivel SFIA en términos prácticos  
         - Cómo las personalidades se van a complementar en el día a día
+        - **🎯 SÚPER IMPORTANTE: Por qué seleccionaste a ESE MIEMBRO DEL EQUIPO como líder**
         - Qué fortalezas y debilidades reales tiene el equipo
         - Por qué respetaste los pesos de criterios que te dieron
 
@@ -367,9 +374,23 @@ async def generate_teams(request: TeamGenerationRequest):
         )
 
         try:
-            team_formation_result = json.loads(response.content[0].text)
+            # Log the raw response from Claude
+            raw_response = response.content[0].text
+            print(f"🤖 RAW CLAUDE RESPONSE: {raw_response}")
+            
+            team_formation_result = json.loads(raw_response)
+            
+            # Log the parsed JSON to see structure
+            print(f"📋 PARSED JSON KEYS: {list(team_formation_result.keys())}")
+            if 'recommended_Leader' in team_formation_result:
+                print(f"✅ recommended_Leader FOUND: {team_formation_result['recommended_Leader']}")
+            else:
+                print(f"❌ recommended_Leader NOT FOUND in keys: {list(team_formation_result.keys())}")
+            
             return team_formation_result
         except Exception as e:
+            print(f"💥 JSON PARSE ERROR: {str(e)}")
+            print(f"🔍 RAW RESPONSE CAUSING ERROR: {response.content[0].text}")
             raise HTTPException(status_code=500, detail=f"Error al analizar resultado de formación de equipo: {str(e)}")
 
     except Exception as e:

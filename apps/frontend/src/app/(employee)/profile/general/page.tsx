@@ -22,10 +22,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { EmployeeLanguage, useEmployeeLanguages, useEmployeeProfile } from '@/hooks/useEmployeeProfile';
+import { useEmployeeLanguages, useEmployeeProfile } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
 
-import { Camera, Edit, Globe, Languages, Trash2, User } from 'lucide-react';
+import { Camera, Globe, Languages, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 const countries = [
@@ -115,7 +115,7 @@ export default function GeneralInfoPage() {
   // Language form state
   const [newLanguage, setNewLanguage] = useState('');
   const [newProficiency, setNewProficiency] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [updatingLanguageId, setUpdatingLanguageId] = useState<string | null>(null);
 
   // Delete dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -183,34 +183,27 @@ export default function GeneralInfoPage() {
     }
   };
 
-  const handleUpdateLanguage = async () => {
-    if (!editingId || !newLanguage || !newProficiency) {
-      toast.error('Por favor complete todos los campos');
-      return;
-    }
+  const handleEditLanguageSelect = async (langId: string, field: 'language' | 'proficiency', value: string) => {
+    if (!value) return;
 
     try {
-      // Convertir idioma a inglés para guardar en BD
-      const languageInEnglish = languageMapping[newLanguage] || newLanguage;
-      await updateLanguage(editingId, {
-        language: languageInEnglish,
-        proficiency: newProficiency,
-      });
-      setEditingId(null);
-      setNewLanguage('');
-      setNewProficiency('');
+      setUpdatingLanguageId(langId);
+      const currentLang = languages.find((l) => l.id === langId);
+      if (!currentLang) return;
+
+      // Preparar los datos para la actualización
+      const updateData = {
+        language: field === 'language' ? languageMapping[value] || value : currentLang.language,
+        proficiency: field === 'proficiency' ? value : currentLang.proficiency,
+      };
+
+      await updateLanguage(langId, updateData);
       toast.success('Idioma actualizado correctamente');
     } catch (_err) {
       toast.error('Error al actualizar el idioma');
+    } finally {
+      setUpdatingLanguageId(null);
     }
-  };
-
-  const handleEditLanguage = (lang: EmployeeLanguage) => {
-    // Convertir idioma de inglés (BD) a español (frontend) para editar
-    const languageInSpanish = reverseLanguageMapping[lang.language] || lang.language;
-    setNewLanguage(languageInSpanish);
-    setNewProficiency(lang.proficiency);
-    setEditingId(lang.id);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -230,17 +223,6 @@ export default function GeneralInfoPage() {
       setIsDeleteDialogOpen(false);
       setLanguageToDelete(null);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setNewLanguage('');
-    setNewProficiency('');
-  };
-
-  const getProficiencyLabel = (value: string) => {
-    const level = proficiencyLevels.find((l) => l.value === value);
-    return level ? level.label : value;
   };
 
   return (
@@ -390,19 +372,48 @@ export default function GeneralInfoPage() {
                   {languages.length > 0 ? (
                     <div className="space-y-3">
                       {languages.map((lang) => (
-                        <div
-                          key={lang.id}
-                          className="flex items-center justify-between rounded-lg border bg-slate-50 p-3"
-                        >
-                          <div>
-                            <span className="font-medium">{lang.language}</span>
-                            <span className="text-slate-600"> - {getProficiencyLabel(lang.proficiency)}</span>
+                        <div key={lang.id} className="flex items-center gap-4 rounded-lg border bg-slate-50 p-4">
+                          <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                              <Label className="text-sm font-medium text-slate-700">Idioma</Label>
+                              <Select
+                                options={commonLanguages}
+                                value={commonLanguages.find(
+                                  (opt) => opt.value === (reverseLanguageMapping[lang.language] || lang.language),
+                                )}
+                                onChange={(selected) => {
+                                  if (selected) {
+                                    handleEditLanguageSelect(lang.id, 'language', (selected as any).value);
+                                  }
+                                }}
+                                placeholder="Seleccionar idioma..."
+                                isDisabled={updatingLanguageId === lang.id}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-slate-700">Nivel</Label>
+                              <Select
+                                options={proficiencyLevels}
+                                value={proficiencyLevels.find((opt) => opt.value === lang.proficiency)}
+                                onChange={(selected) => {
+                                  if (selected) {
+                                    handleEditLanguageSelect(lang.id, 'proficiency', (selected as any).value);
+                                  }
+                                }}
+                                placeholder="Seleccionar nivel..."
+                                isDisabled={updatingLanguageId === lang.id}
+                              />
+                            </div>
                           </div>
                           <div className="flex gap-1">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleEditLanguage(lang)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleDeleteClick(lang.id)}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(lang.id)}
+                              disabled={updatingLanguageId === lang.id}
+                              className="h-8 w-8 p-0 text-red-600 transition-all duration-200 hover:bg-red-50 hover:text-red-700"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -436,28 +447,32 @@ export default function GeneralInfoPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2">
-                    {editingId && (
-                      <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                        Cancelar
-                      </Button>
-                    )}
+                  <div className="flex justify-end">
                     <Button
                       type="button"
-                      onClick={editingId ? handleUpdateLanguage : handleAddLanguage}
+                      onClick={handleAddLanguage}
                       disabled={!newLanguage || !newProficiency || languagesLoading}
+                      className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-2.5 text-white shadow-md transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-green-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                     >
-                      {editingId ? 'Actualizar Idioma' : 'Agregar Idioma'}
+                      Agregar Idioma
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => router.push('/profile')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/profile')}
+                  className="border-2 px-6 py-2.5 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100"
+                >
                   Volver
                 </Button>
-                <Button type="submit" className="px-6">
+                <Button
+                  type="submit"
+                  className="transform bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-2.5 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
+                >
                   Guardar y Continuar
                 </Button>
               </div>
@@ -475,12 +490,12 @@ export default function GeneralInfoPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex justify-end gap-3">
-            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+            <AlertDialogCancel className="border-2 px-4 py-2 text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+              className="bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-red-800 hover:shadow-xl focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
             >
               Eliminar
             </AlertDialogAction>

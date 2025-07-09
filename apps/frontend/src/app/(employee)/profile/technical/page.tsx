@@ -19,6 +19,7 @@ import { findSpecializedRoleId, useAvailableRolesAndAreas } from '@/hooks/useAva
 import { useEmployeeProfile, useEmployeeTechnologies, type EmployeeTechnology } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
 import { API_BASE_URL } from '@/lib/api';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 import {
   Brain,
@@ -36,6 +37,7 @@ import {
   Trash2,
   Upload,
   Wrench,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -855,7 +857,13 @@ export default function TechnicalProfilePage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setJsonImportOpen(true)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setJsonImportOpen(true)}
+                    className={buttonStyles.utility}
+                  >
                     <Upload className="mr-2 h-4 w-4" />
                     Importar JSON
                   </Button>
@@ -864,8 +872,41 @@ export default function TechnicalProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Add/Edit Technology Form */}
-              <div className="rounded-lg border bg-slate-50 p-4">
-                <h4 className="mb-4 font-medium">{editingTechId ? 'Editar Tecnología' : 'Agregar Nueva Tecnología'}</h4>
+              <div
+                className={`rounded-lg border p-4 transition-all duration-200 ${
+                  editingTechId
+                    ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50'
+                    : 'border-slate-300 bg-slate-50'
+                }`}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {editingTechId ? (
+                      <div className="rounded-full bg-orange-100 p-2">
+                        <Edit className="h-5 w-5 text-orange-600" />
+                      </div>
+                    ) : (
+                      <div className="rounded-full bg-blue-100 p-2">
+                        <Plus className="h-5 w-5 text-blue-600" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className={`font-semibold ${editingTechId ? 'text-orange-800' : 'text-slate-800'}`}>
+                        {editingTechId ? 'Editar Tecnología' : 'Agregar Nueva Tecnología'}
+                      </h4>
+                      <p className={`text-sm ${editingTechId ? 'text-orange-600' : 'text-slate-600'}`}>
+                        {editingTechId
+                          ? 'Modifique los campos que desea actualizar'
+                          : 'Complete la información de la nueva tecnología'}
+                      </p>
+                    </div>
+                  </div>
+                  {editingTechId && (
+                    <div className="rounded-lg bg-orange-200 px-3 py-1">
+                      <span className="text-sm font-medium text-orange-800">MODO EDICIÓN</span>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                   <div>
                     <Label>Tecnología *</Label>
@@ -931,14 +972,17 @@ export default function TechnicalProfilePage() {
                         setYearsExperience(0);
                         setVersion('');
                       }}
+                      className={buttonStyles.outline}
                     >
-                      Cancelar
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar Edición
                     </Button>
                   )}
                   <Button
                     type="button"
                     onClick={editingTechId ? handleUpdateTechnology : handleAddTechnology}
                     disabled={!selectedTechnology}
+                    className={editingTechId ? buttonStyles.primary : buttonStyles.secondary}
                   >
                     {editingTechId ? (
                       <>
@@ -966,12 +1010,34 @@ export default function TechnicalProfilePage() {
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                         {techs.map((tech) => {
                           const techInfo = availableTechnologies.find((t) => t.id === tech.technologyId);
+                          const isBeingEdited = editingTechId === tech.id;
                           return (
-                            <div key={tech.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                            <div
+                              key={tech.id}
+                              className={`rounded-lg border p-4 shadow-sm transition-all duration-200 ${
+                                isBeingEdited
+                                  ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50 ring-2 ring-orange-200'
+                                  : 'border-slate-200 bg-white hover:border-slate-300'
+                              }`}
+                            >
+                              {isBeingEdited && (
+                                <div className="mb-3 flex items-center gap-2">
+                                  <div className="rounded-full bg-orange-100 p-1">
+                                    <Edit className="h-3 w-3 text-orange-600" />
+                                  </div>
+                                  <span className="text-xs font-medium text-orange-700">EDITANDO</span>
+                                </div>
+                              )}
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <h5 className="font-medium text-slate-900">{techInfo?.name}</h5>
-                                  <div className="mt-1 space-y-1 text-sm text-slate-600">
+                                  <h5 className={`font-medium ${isBeingEdited ? 'text-orange-800' : 'text-slate-900'}`}>
+                                    {techInfo?.name}
+                                  </h5>
+                                  <div
+                                    className={`mt-1 space-y-1 text-sm ${
+                                      isBeingEdited ? 'text-orange-600' : 'text-slate-600'
+                                    }`}
+                                  >
                                     <div>SFIA: Nivel {tech.sfiaLevel}</div>
                                     <div>{tech.yearsExperience} años de experiencia</div>
                                     {tech.version && <div>Versión: {tech.version}</div>}
@@ -983,6 +1049,7 @@ export default function TechnicalProfilePage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEditTechnology(tech)}
+                                    className={buttonStyles.iconEdit}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -991,6 +1058,7 @@ export default function TechnicalProfilePage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeleteTechnology(tech.id)}
+                                    className={buttonStyles.iconDelete}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -1014,14 +1082,26 @@ export default function TechnicalProfilePage() {
           </Card>
 
           <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => router.push('/profile')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/profile')}
+              className={buttonStyles.outline}
+            >
               Volver
             </Button>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => router.push('/profile/general')}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/profile/general')}
+                className={buttonStyles.outline}
+              >
                 Anterior
               </Button>
-              <Button type="submit">Guardar y Continuar</Button>
+              <Button type="submit" className={buttonStyles.navigation}>
+                Guardar y Continuar
+              </Button>
             </div>
           </div>
         </form>
@@ -1041,12 +1121,17 @@ export default function TechnicalProfilePage() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={downloadSampleJson} className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadSampleJson}
+                  className={`${buttonStyles.utility} flex items-center gap-2`}
+                >
                   <Download className="h-4 w-4" />
                   Descargar Ejemplo
                 </Button>
                 <Label htmlFor="tech-json-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className={buttonStyles.utility}>
                     <span className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       Seleccionar Archivo JSON
@@ -1111,12 +1196,13 @@ export default function TechnicalProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setJsonImportOpen(false)}>
+                    <Button variant="outline" onClick={() => setJsonImportOpen(false)} className={buttonStyles.outline}>
                       Cancelar
                     </Button>
                     <Button
                       onClick={handleImportConfirm}
                       disabled={!importPreview.some((item) => item.selected) || isImporting}
+                      className={buttonStyles.secondary}
                     >
                       {isImporting
                         ? 'Importando...'

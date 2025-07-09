@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { PersonalInterest, usePersonalInterests } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 import { Download, Edit, Heart, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -365,7 +366,7 @@ export default function PersonalInterestsPage() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Dialog open={jsonImportOpen} onOpenChange={setJsonImportOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className={buttonStyles.utility}>
                       <Upload className="mr-2 h-4 w-4" />
                       Importar JSON
                     </Button>
@@ -387,7 +388,7 @@ export default function PersonalInterestsPage() {
                             className="file:mr-2 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-sm"
                           />
                         </div>
-                        <Button variant="outline" onClick={downloadSampleJson}>
+                        <Button variant="outline" onClick={downloadSampleJson} className={buttonStyles.utility}>
                           <Download className="mr-2 h-4 w-4" />
                           Ejemplo
                         </Button>
@@ -422,10 +423,18 @@ export default function PersonalInterestsPage() {
                             ))}
                           </div>
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setJsonImportOpen(false)}>
+                            <Button
+                              variant="outline"
+                              onClick={() => setJsonImportOpen(false)}
+                              className={buttonStyles.outline}
+                            >
                               Cancelar
                             </Button>
-                            <Button onClick={handleImportConfirm} disabled={isImporting}>
+                            <Button
+                              onClick={handleImportConfirm}
+                              disabled={isImporting}
+                              className={buttonStyles.primary}
+                            >
                               {isImporting
                                 ? 'Importando...'
                                 : `Importar ${importPreview.filter((i) => i.selected).length} intereses`}
@@ -439,7 +448,7 @@ export default function PersonalInterestsPage() {
 
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm">
+                    <Button size="sm" className={buttonStyles.secondary}>
                       <Plus className="mr-2 h-4 w-4" />
                       Agregar Interés
                     </Button>
@@ -517,10 +526,12 @@ export default function PersonalInterestsPage() {
                       </div>
 
                       <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={resetForm}>
+                        <Button type="button" variant="outline" onClick={resetForm} className={buttonStyles.outline}>
                           Cancelar
                         </Button>
-                        <Button onClick={handleSubmit}>{editingId ? 'Actualizar' : 'Agregar'} Interés</Button>
+                        <Button onClick={handleSubmit} className={buttonStyles.primary}>
+                          {editingId ? 'Actualizar' : 'Agregar'} Interés
+                        </Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -541,10 +552,20 @@ export default function PersonalInterestsPage() {
                     <div className="mb-3 flex items-start justify-between">
                       <h3 className="text-lg font-semibold">{interest.name}</h3>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(interest)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(interest)}
+                          className={buttonStyles.utility}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(interest.id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(interest.id)}
+                          className={buttonStyles.danger}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -576,7 +597,7 @@ export default function PersonalInterestsPage() {
                 <p className="mb-4 text-slate-500">
                   Agregue sus intereses personales y hobbies para completar su perfil
                 </p>
-                <Button onClick={() => setIsFormOpen(true)}>
+                <Button onClick={() => setIsFormOpen(true)} className={buttonStyles.secondary}>
                   <Plus className="mr-2 h-4 w-4" />
                   Agregar Primer Interés
                 </Button>
@@ -586,11 +607,15 @@ export default function PersonalInterestsPage() {
         </Card>
 
         <div className="mt-6 flex justify-between">
-          <Button variant="outline" onClick={() => router.push('/profile')}>
+          <Button variant="outline" onClick={() => router.push('/profile')} className={buttonStyles.outline}>
             Volver
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/profile/experience')}>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/profile/experience')}
+              className={buttonStyles.navigation}
+            >
               Anterior
             </Button>
             <Button
@@ -599,6 +624,7 @@ export default function PersonalInterestsPage() {
                 router.push('/profile/');
               }}
               disabled={interests.length === 0}
+              className={buttonStyles.finish}
             >
               Finalizar Perfil
             </Button>
@@ -615,13 +641,8 @@ export default function PersonalInterestsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex justify-end gap-3">
-            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
-            >
+            <AlertDialogCancel className={buttonStyles.outline}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className={buttonStyles.danger}>
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

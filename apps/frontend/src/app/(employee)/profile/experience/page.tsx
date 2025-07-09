@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { WorkExperience, useWorkExperiences } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 import { Briefcase, Calendar, Download, Edit, FileText, Plus, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -473,14 +474,17 @@ export default function WorkExperiencePage() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-center gap-3">
-          <Button onClick={() => setIsAddingProject(true)} className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsAddingProject(true)}
+            className={`${buttonStyles.secondary} flex items-center gap-2`}
+          >
             <Plus className="h-4 w-4" />
             Agregar Proyecto
           </Button>
 
           <Dialog open={jsonImportOpen} onOpenChange={setJsonImportOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className={`${buttonStyles.utility} flex items-center gap-2`}>
                 <Upload className="h-4 w-4" />
                 Importar desde JSON
               </Button>
@@ -530,6 +534,7 @@ export default function WorkExperiencePage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setImportPreview((prev) => prev.map((item) => ({ ...item, selected: true })))}
+                          className={buttonStyles.utility}
                         >
                           Seleccionar Todos
                         </Button>
@@ -537,6 +542,7 @@ export default function WorkExperiencePage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setImportPreview((prev) => prev.map((item) => ({ ...item, selected: false })))}
+                          className={buttonStyles.utility}
                         >
                           Deseleccionar Todos
                         </Button>
@@ -610,6 +616,7 @@ export default function WorkExperiencePage() {
                           populateFormWithExperience(experience);
                           setIsAddingProject(true);
                         }}
+                        className={buttonStyles.utility}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -617,6 +624,7 @@ export default function WorkExperiencePage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(experience.id, experience.projectName)}
+                        className={buttonStyles.danger}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -638,7 +646,7 @@ export default function WorkExperiencePage() {
                       <h4 className="mb-2 font-medium">Herramientas</h4>
                       <div className="flex flex-wrap gap-1">
                         {experience.tools.map((tool, index) => (
-                          <Badge key={index} variant="secondary">
+                          <Badge key={index} variant="outline">
                             {tool}
                           </Badge>
                         ))}
@@ -662,7 +670,7 @@ export default function WorkExperiencePage() {
                       <h4 className="mb-2 font-medium">Terceros</h4>
                       <div className="flex flex-wrap gap-1">
                         {experience.thirdParties.map((party, index) => (
-                          <Badge key={index} variant="default">
+                          <Badge key={index} variant="outline">
                             {party}
                           </Badge>
                         ))}
@@ -762,7 +770,7 @@ export default function WorkExperiencePage() {
                   {/* Tools */}
                   <div>
                     <Label>Herramientas Utilizadas</Label>
-                    <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonTools.map((tool) => (
                         <div key={tool} className="flex items-center space-x-2">
                           <Checkbox
@@ -770,7 +778,7 @@ export default function WorkExperiencePage() {
                             checked={selectedTools.includes(tool)}
                             onCheckedChange={() => handleToolToggle(tool)}
                           />
-                          <Label htmlFor={`tool-${tool}`} className="text-sm">
+                          <Label htmlFor={`tool-${tool}`} className="text-sm leading-none">
                             {tool}
                           </Label>
                         </div>
@@ -779,7 +787,7 @@ export default function WorkExperiencePage() {
                     {selectedTools.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {selectedTools.map((tool) => (
-                          <Badge key={tool} variant="secondary" className="flex items-center gap-1">
+                          <Badge key={tool} variant="outline" className="flex items-center gap-1">
                             {tool}
                             <X className="h-3 w-3 cursor-pointer" onClick={() => handleToolToggle(tool)} />
                           </Badge>
@@ -791,7 +799,7 @@ export default function WorkExperiencePage() {
                   {/* Frameworks */}
                   <div>
                     <Label>Frameworks</Label>
-                    <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonFrameworks.map((framework) => (
                         <div key={framework} className="flex items-center space-x-2">
                           <Checkbox
@@ -820,7 +828,7 @@ export default function WorkExperiencePage() {
                   {/* Third Parties */}
                   <div>
                     <Label>Servicios de Terceros</Label>
-                    <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+                    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonThirdParties.map((party) => (
                         <div key={party} className="flex items-center space-x-2">
                           <Checkbox
@@ -837,7 +845,7 @@ export default function WorkExperiencePage() {
                     {selectedThirdParties.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {selectedThirdParties.map((party) => (
-                          <Badge key={party} variant="default" className="flex items-center gap-1">
+                          <Badge key={party} variant="outline" className="flex items-center gap-1">
                             {party}
                             <X className="h-3 w-3 cursor-pointer" onClick={() => handleThirdPartyToggle(party)} />
                           </Badge>
@@ -945,14 +953,23 @@ export default function WorkExperiencePage() {
 
         {/* Navegación final */}
         <div className="mt-6 flex justify-between">
-          <Button variant="outline" onClick={() => router.push('/profile')}>
+          <Button variant="outline" onClick={() => router.push('/profile')} className={buttonStyles.outline}>
             Volver
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/profile/technical')}>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/profile/technical')}
+              className={buttonStyles.outline}
+            >
               Anterior
             </Button>
-            <Button type="button" onClick={() => router.push('/profile/interests')} disabled={experiences.length === 0}>
+            <Button
+              type="button"
+              onClick={() => router.push('/profile/interests')}
+              disabled={experiences.length === 0}
+              className={buttonStyles.navigation}
+            >
               Guardar y Continuar
             </Button>
           </div>
@@ -969,13 +986,8 @@ export default function WorkExperiencePage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex justify-end gap-3">
-            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
-            >
+            <AlertDialogCancel className={buttonStyles.outline}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className={buttonStyles.danger}>
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

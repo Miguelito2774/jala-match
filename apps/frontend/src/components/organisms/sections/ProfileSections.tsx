@@ -14,6 +14,7 @@ import {
   usePersonalInterests,
   useWorkExperiences,
 } from '@/hooks/useEmployeeProfile';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 export const ProfileSections = () => {
   const router = useRouter();
@@ -66,28 +67,29 @@ export const ProfileSections = () => {
       id: 'general',
       title: 'Información General',
       completed: progress.general,
-      description: 'Datos personales básicos y disponibilidad',
+      description:
+        'Complete sus datos personales, disponibilidad horaria, idiomas y configuraciones básicas para empezar',
       route: '/profile/general',
     },
     {
       id: 'technical',
       title: 'Perfil Técnico',
       completed: progress.technical,
-      description: 'Habilidades técnicas y especializaciones',
+      description: 'Defina su nivel SFIA, tipo de personalidad MBTI, stack tecnológico y áreas de especialización',
       route: '/profile/technical',
     },
     {
       id: 'experience',
       title: 'Experiencia Laboral',
       completed: progress.experience,
-      description: 'Historial profesional y proyectos',
+      description: 'Registre sus proyectos más relevantes, tecnologías utilizadas y logros profesionales',
       route: '/profile/experience',
     },
     {
       id: 'interests',
       title: 'Intereses Personales',
       completed: progress.interests,
-      description: 'Actividades y preferencias fuera del trabajo',
+      description: 'Comparta sus hobbies, intereses y actividades fuera del trabajo para mostrar su personalidad',
       route: '/profile/interests',
     },
   ];
@@ -125,6 +127,36 @@ export const ProfileSections = () => {
 
   return (
     <div className="space-y-6">
+      {/* Guía Inicial */}
+      <div className="rounded-lg border-l-4 border-blue-500 bg-blue-50 p-6">
+        <div className="flex items-start">
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-blue-900">¡Bienvenido a la configuración de tu perfil!</h3>
+            <div className="mt-2 text-sm text-blue-700">
+              <p className="mb-2">
+                Complete las siguientes <strong>4 secciones</strong> para crear un perfil profesional completo:
+              </p>
+              <ul className="ml-4 list-disc space-y-1">
+                <li>
+                  <strong>Información General:</strong> Sus datos básicos, disponibilidad e idiomas
+                </li>
+                <li>
+                  <strong>Perfil Técnico:</strong> Stack tecnológico, nivel SFIA y especialización
+                </li>
+                <li>
+                  <strong>Experiencia Laboral:</strong> Proyectos más relevantes y logros profesionales
+                </li>
+                <li>
+                  <strong>Intereses Personales:</strong> Hobbies y actividades que definen su personalidad
+                </li>
+              </ul>
+              <p className="mt-3 font-medium">
+                💡 <strong>Consejo:</strong> Puede completar las secciones en cualquier orden y en varios momentos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       {/* Progress Overview */}
       <div className="bg-card rounded-lg border p-6">
         <div className="mb-4 flex items-center justify-between">
@@ -240,12 +272,16 @@ export const ProfileSections = () => {
 
           <div className="flex space-x-3">
             {!profile && (
-              <Button variant="outline" onClick={() => router.push('/profile/general')}>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/profile/general')}
+                className={buttonStyles.primary}
+              >
                 Comenzar Perfil
               </Button>
             )}
             {profile && profile.verificationStatus === 1 && profile.hasVerificationRequests && allSectionsCompleted && (
-              <Button variant="outline" disabled>
+              <Button variant="outline" disabled className={buttonStyles.outline}>
                 Solicitud Pendiente
               </Button>
             )}
@@ -253,17 +289,25 @@ export const ProfileSections = () => {
               profile.verificationStatus === 1 &&
               profile.hasVerificationRequests &&
               !allSectionsCompleted && (
-                <Button variant="outline" onClick={() => router.push('/profile/general')}>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/profile/general')}
+                  className={buttonStyles.navigation}
+                >
                   Completar Perfil
                 </Button>
               )}
             {profile && profile.verificationStatus === 2 && (
-              <Button variant="outline" disabled>
+              <Button variant="outline" disabled className={buttonStyles.outline}>
                 Perfil Verificado
               </Button>
             )}
             {profile && profile.verificationStatus === 3 && (
-              <Button onClick={handleVerificationRequest} disabled={!allSectionsCompleted || isRequesting}>
+              <Button
+                onClick={handleVerificationRequest}
+                disabled={!allSectionsCompleted || isRequesting}
+                className={buttonStyles.primary}
+              >
                 {isRequesting ? 'Solicitando...' : 'Re-solicitar Verificación'}
               </Button>
             )}
@@ -271,12 +315,16 @@ export const ProfileSections = () => {
               profile.verificationStatus === 1 &&
               !profile.hasVerificationRequests &&
               allSectionsCompleted && (
-                <Button onClick={handleVerificationRequest} disabled={isRequesting}>
+                <Button onClick={handleVerificationRequest} disabled={isRequesting} className={buttonStyles.finish}>
                   {isRequesting ? 'Solicitando...' : 'Solicitar Verificación'}
                 </Button>
               )}
             {profile && !profile.hasVerificationRequests && !allSectionsCompleted && (
-              <Button variant="outline" onClick={() => router.push('/profile/general')}>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/profile/general')}
+                className={buttonStyles.navigation}
+              >
                 Completar Perfil
               </Button>
             )}
@@ -286,7 +334,7 @@ export const ProfileSections = () => {
                   profile.verificationStatus !== 2 &&
                   profile.verificationStatus !== 3)) &&
               allSectionsCompleted && (
-                <Button onClick={handleVerificationRequest} disabled={isRequesting}>
+                <Button onClick={handleVerificationRequest} disabled={isRequesting} className={buttonStyles.finish}>
                   {isRequesting ? 'Solicitando...' : 'Solicitar Verificación'}
                 </Button>
               )}

@@ -660,12 +660,17 @@ export const usePersonalInterests = (userId?: string) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Error al actualizar interés');
+      const error = await response.json().catch(() => null);
+      throw new Error(error?.detail || 'Error al actualizar interés');
     }
 
     await fetchInterests();
-    return response.json();
+
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
   };
 
   const deleteInterest = async (id: string) => {

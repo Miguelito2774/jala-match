@@ -121,6 +121,20 @@ export default function GeneralInfoPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [languageToDelete, setLanguageToDelete] = useState<string | null>(null);
 
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
+
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    firstName: '',
+    lastName: '',
+    country: '',
+    timezone: '',
+    profilePictureUrl: '',
+  });
+
   const calculateProgress = () => {
     const fields = [firstName, lastName, country, timezone];
     const filled = fields.filter((f) => f && f.trim() !== '').length;
@@ -132,19 +146,77 @@ export default function GeneralInfoPage() {
   useEffect(() => {
     if (profile?.generalInfo) {
       const info = profile.generalInfo;
-      setFirstName(info.firstName || '');
-      setLastName(info.lastName || '');
-      setCountry(info.country || '');
-      setTimezone(info.timezone || '');
-      setProfilePictureUrl(info.profilePictureUrl || '');
+      const values = {
+        firstName: info.firstName || '',
+        lastName: info.lastName || '',
+        country: info.country || '',
+        timezone: info.timezone || '',
+        profilePictureUrl: info.profilePictureUrl || '',
+      };
+
+      setFirstName(values.firstName);
+      setLastName(values.lastName);
+      setCountry(values.country);
+      setTimezone(values.timezone);
+      setProfilePictureUrl(values.profilePictureUrl);
+
+      // Set original values for comparison
+      setOriginalValues(values);
     }
   }, [profile]);
+
+  // Check for changes whenever form values change
+  useEffect(() => {
+    const currentValues = {
+      firstName,
+      lastName,
+      country,
+      timezone,
+      profilePictureUrl,
+    };
+
+    const hasFormChanges = Object.keys(currentValues).some(
+      (key) => currentValues[key as keyof typeof currentValues] !== originalValues[key as keyof typeof originalValues],
+    );
+
+    setHasChanges(hasFormChanges);
+  }, [firstName, lastName, country, timezone, profilePictureUrl, originalValues]);
 
   const getInitials = (first: string, last: string) =>
     `${first?.charAt(0) || ''}${last?.charAt(0) || ''}`.toUpperCase();
 
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (!firstName.trim()) incomplete.push('nombre');
+    if (!lastName.trim()) incomplete.push('apellido');
+    if (!country.trim()) incomplete.push('país');
+    if (!timezone.trim()) incomplete.push('zona horaria');
+    if (languages.length === 0) incomplete.push('al menos un idioma');
+    return incomplete;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+
+    await submitForm();
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmSubmit = () => {
+    setIsConfirmDialogOpen(false);
+    submitForm();
+  };
+
+  // Separate submit logic
+  const submitForm = async () => {
     const payload = {
       firstName,
       lastName,
@@ -175,6 +247,8 @@ export default function GeneralInfoPage() {
       // Convertir idioma a inglés para guardar en BD
       const languageInEnglish = languageMapping[newLanguage] || newLanguage;
       await addLanguage({ language: languageInEnglish, proficiency: newProficiency });
+
+      // Limpiar los campos después de agregar exitosamente
       setNewLanguage('');
       setNewProficiency('');
       toast.success('Idioma agregado correctamente');
@@ -275,7 +349,7 @@ export default function GeneralInfoPage() {
                         <Camera className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-2">
                       <Label htmlFor="profilePicture">URL de Foto de Perfil</Label>
                       <Input
                         id="profilePicture"
@@ -283,13 +357,12 @@ export default function GeneralInfoPage() {
                         placeholder="https://ejemplo.com/mi-foto.jpg"
                         value={profilePictureUrl}
                         onChange={(e) => setProfilePictureUrl(e.target.value)}
-                        className="mt-1"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="firstName">Nombre *</Label>
                       <Input
                         id="firstName"
@@ -299,7 +372,7 @@ export default function GeneralInfoPage() {
                         onChange={(e) => setFirstName(e.target.value)}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="lastName">Apellido *</Label>
                       <Input
                         id="lastName"
@@ -313,7 +386,7 @@ export default function GeneralInfoPage() {
                 </CardContent>
               </Card>
 
-              <Card className="overflow-visible border-0 bg-white/70 shadow-sm backdrop-blur-sm">
+              <Card className="relative z-50 overflow-visible border-0 bg-white/70 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5 text-slate-600" />
@@ -329,6 +402,7 @@ export default function GeneralInfoPage() {
                       value={countries.find((opt) => opt.value === country)}
                       onChange={(selected) => setCountry((selected as any)?.value ?? '')}
                       placeholder="Seleccionar país..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex items-center gap-2">
@@ -346,6 +420,7 @@ export default function GeneralInfoPage() {
                       value={timezones.find((opt) => opt.value === timezone)}
                       onChange={(selected) => setTimezone((selected as any)?.value ?? '')}
                       placeholder="Seleccionar zona horaria..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex flex-col">
@@ -360,7 +435,7 @@ export default function GeneralInfoPage() {
               </Card>
 
               {/* Enhanced Languages Section */}
-              <Card className="border-0 bg-white/70 shadow-sm backdrop-blur-sm">
+              <Card className="relative z-40 border-0 bg-white/70 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
                     <Languages className="h-5 w-5 text-slate-600" />
@@ -387,6 +462,7 @@ export default function GeneralInfoPage() {
                                   }
                                 }}
                                 placeholder="Seleccionar idioma..."
+                                isSearchable={true}
                                 isDisabled={updatingLanguageId === lang.id}
                               />
                             </div>
@@ -427,16 +503,17 @@ export default function GeneralInfoPage() {
                   )}
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label>Idioma</Label>
                       <Select
                         options={commonLanguages}
                         value={commonLanguages.find((opt) => opt.value === newLanguage)}
                         onChange={(selected) => setNewLanguage((selected as any)?.value ?? '')}
                         placeholder="Seleccionar idioma..."
+                        isSearchable={true}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Nivel de Competencia</Label>
                       <Select
                         options={proficiencyLevels}
@@ -473,7 +550,7 @@ export default function GeneralInfoPage() {
                   type="submit"
                   className="transform bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-2.5 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
                 >
-                  Guardar y Continuar
+                  {hasChanges ? 'Guardar y Continuar' : 'Siguiente'}
                 </Button>
               </div>
             </form>
@@ -503,8 +580,33 @@ export default function GeneralInfoPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Overlay for AlertDialog */}
-      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
+      {/* Confirmation Dialog for Incomplete Fields */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Continuar sin completar?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className="border-2 px-4 py-2 text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50">
+              Volver a completar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSubmit}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+            >
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Overlay for AlertDialogs */}
+      {(isDeleteDialogOpen || isConfirmDialogOpen) && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

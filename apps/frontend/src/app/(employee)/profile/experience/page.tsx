@@ -162,6 +162,40 @@ export default function WorkExperiencePage() {
   const router = useRouter();
   const { experiences, loading, addExperience, updateExperience, deleteExperience } = useWorkExperiences();
 
+  // Track changes for dynamic button (no form state to track since it's just a list)
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Track when experiences are added/updated/deleted
+  const trackChange = () => {
+    setHasChanges(true);
+    // Reset to false after 30 seconds
+    setTimeout(() => setHasChanges(false), 30000);
+  };
+
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (experiences.length === 0) incomplete.push('al menos una experiencia laboral');
+    return incomplete;
+  };
+
+  // Handle navigation with suggestions
+  const handleContinue = () => {
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+    router.push('/profile/interests');
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmContinue = () => {
+    setIsConfirmDialogOpen(false);
+    router.push('/profile/interests');
+  };
+
   // Form state
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
@@ -180,6 +214,10 @@ export default function WorkExperiencePage() {
   const [editingProject, setEditingProject] = useState<WorkExperience | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [experienceToDelete, setExperienceToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
 
   // JSON Import states
   const [jsonImportOpen, setJsonImportOpen] = useState(false);
@@ -240,6 +278,7 @@ export default function WorkExperiencePage() {
 
     try {
       await deleteExperience(experienceToDelete.id);
+      trackChange();
       toast.success('Proyecto eliminado exitosamente');
     } catch (_err) {
       toast.error('Error al eliminar el proyecto');
@@ -296,6 +335,7 @@ export default function WorkExperiencePage() {
         toast.success('Proyecto agregado exitosamente');
       }
 
+      trackChange();
       resetForm();
       setIsAddingProject(false);
     } catch (_err) {
@@ -381,6 +421,7 @@ export default function WorkExperiencePage() {
         };
         await addExperience(projectData);
       }
+      trackChange();
       toast.success(`${selectedItems.length} proyectos importados correctamente`);
       setJsonImportOpen(false);
       setJsonInput('');
@@ -736,7 +777,7 @@ export default function WorkExperiencePage() {
                   <CardTitle className="text-base">Información Básica</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="projectName">Nombre del Proyecto *</Label>
                     <Input
                       id="projectName"
@@ -747,7 +788,7 @@ export default function WorkExperiencePage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="description">Descripción *</Label>
                     <TextArea
                       id="description"
@@ -768,7 +809,7 @@ export default function WorkExperiencePage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Tools */}
-                  <div>
+                  <div className="space-y-2">
                     <Label>Herramientas Utilizadas</Label>
                     <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonTools.map((tool) => (
@@ -797,7 +838,7 @@ export default function WorkExperiencePage() {
                   </div>
 
                   {/* Frameworks */}
-                  <div>
+                  <div className="space-y-2">
                     <Label>Frameworks</Label>
                     <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonFrameworks.map((framework) => (
@@ -826,7 +867,7 @@ export default function WorkExperiencePage() {
                   </div>
 
                   {/* Third Parties */}
-                  <div>
+                  <div className="space-y-2">
                     <Label>Servicios de Terceros</Label>
                     <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {commonThirdParties.map((party) => (
@@ -856,22 +897,24 @@ export default function WorkExperiencePage() {
 
                   {/* Version Control & Project Management */}
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label>Control de Versiones</Label>
                       <Select
                         options={versionControlOptions}
                         value={versionControlOptions.find((opt) => opt.value === versionControl)}
                         onChange={(selected) => setVersionControl((selected as any)?.value || '')}
                         placeholder="Seleccionar..."
+                        isSearchable={true}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Gestión de Proyecto</Label>
                       <Select
                         options={projectManagementOptions}
                         value={projectManagementOptions.find((opt) => opt.value === projectManagement)}
                         onChange={(selected) => setProjectManagement((selected as any)?.value || '')}
                         placeholder="Seleccionar..."
+                        isSearchable={true}
                       />
                     </div>
                   </div>
@@ -886,7 +929,7 @@ export default function WorkExperiencePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {responsibilities.map((resp, index) => (
-                    <div key={index}>
+                    <div key={index} className="space-y-2">
                       <Label>Responsabilidad #{index + 1}</Label>
                       <Input
                         value={resp}
@@ -904,7 +947,7 @@ export default function WorkExperiencePage() {
                   <CardTitle className="text-base">Duración del Proyecto</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="startDate">Fecha de Inicio *</Label>
                     <Input
                       id="startDate"
@@ -925,7 +968,7 @@ export default function WorkExperiencePage() {
                     </div>
 
                     {!isCurrentProject && (
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="endDate">Fecha de Finalización</Label>
                         <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                       </div>
@@ -964,18 +1007,34 @@ export default function WorkExperiencePage() {
             >
               Anterior
             </Button>
-            <Button
-              type="button"
-              onClick={() => router.push('/profile/interests')}
-              disabled={experiences.length === 0}
-              className={buttonStyles.navigation}
-            >
-              Guardar y Continuar
+            <Button type="button" onClick={handleContinue} className={buttonStyles.navigation}>
+              {hasChanges ? 'Guardar y Continuar' : 'Siguiente'}
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Confirmation Dialog for Incomplete Fields */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Continuar sin completar?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className={buttonStyles.outline}>Volver a completar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmContinue} className={buttonStyles.primary}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Project Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
           <AlertDialogHeader>
@@ -994,8 +1053,8 @@ export default function WorkExperiencePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Overlay for AlertDialog */}
-      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
+      {/* Overlay for AlertDialogs */}
+      {(isDeleteDialogOpen || isConfirmDialogOpen) && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

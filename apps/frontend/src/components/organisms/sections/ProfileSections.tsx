@@ -189,17 +189,11 @@ export const ProfileSections = () => {
                 <div className="h-3 w-3 rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-green-700">Perfil Verificado</span>
               </>
-            ) : profile.verificationStatus === 1 && profile.hasVerificationRequests && allSectionsCompleted ? (
-              // Verificación realmente solicitada y pendiente
+            ) : profile.verificationStatus === 1 && profile.hasVerificationRequests ? (
+              // Verificación solicitada - siempre mostrar "Solicitud Pendiente"
               <>
                 <div className="h-3 w-3 rounded-full bg-blue-500"></div>
                 <span className="text-sm font-medium text-blue-700">Solicitud Pendiente</span>
-              </>
-            ) : profile.verificationStatus === 1 && profile.hasVerificationRequests && !allSectionsCompleted ? (
-              // Verificación solicitada pero perfil incompleto
-              <>
-                <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                <span className="text-sm font-medium text-yellow-700">Complete su perfil para verificación</span>
               </>
             ) : profile.verificationStatus === 3 ? (
               // Rechazado
@@ -249,16 +243,8 @@ export const ProfileSections = () => {
           <div className="text-muted-foreground text-sm">
             {profile && profile.verificationStatus === 2 ? (
               <span>Su perfil ha sido verificado exitosamente</span>
-            ) : profile &&
-              profile.verificationStatus === 1 &&
-              profile.hasVerificationRequests &&
-              allSectionsCompleted ? (
+            ) : profile && profile.verificationStatus === 1 && profile.hasVerificationRequests ? (
               <span>Su solicitud está pendiente</span>
-            ) : profile &&
-              profile.verificationStatus === 1 &&
-              profile.hasVerificationRequests &&
-              !allSectionsCompleted ? (
-              <span>Complete todas las secciones para que su solicitud sea procesada</span>
             ) : profile && profile.verificationStatus === 3 ? (
               <span>Su solicitud fue rechazada. Puede solicitar verificación nuevamente</span>
             ) : profile && allSectionsCompleted ? (
@@ -280,7 +266,7 @@ export const ProfileSections = () => {
                 Comenzar Perfil
               </Button>
             )}
-            {profile && profile.verificationStatus === 1 && profile.hasVerificationRequests && allSectionsCompleted && (
+            {profile && profile.verificationStatus === 1 && profile.hasVerificationRequests && (
               <Button variant="outline" disabled className={buttonStyles.outline}>
                 Solicitud Pendiente
               </Button>

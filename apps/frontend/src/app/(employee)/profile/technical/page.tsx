@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation';
 
 import { Select } from '@/components/atoms/inputs/Select';
 import { PageLoader } from '@/components/atoms/loaders/PageLoader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -250,6 +260,13 @@ export default function TechnicalProfilePage() {
   const [sfiaLevelGeneral, setSfiaLevelGeneral] = useState<number>(1);
   const [mbti, setMbti] = useState<string>('');
 
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    sfiaLevelGeneral: 1,
+    mbti: '',
+  });
+
   // Technology form states
   const [selectedTechnology, setSelectedTechnology] = useState<string>('');
   const [sfiaLevel, setSfiaLevel] = useState<number>(1);
@@ -272,6 +289,10 @@ export default function TechnicalProfilePage() {
   const [selectedSpecArea, setSelectedSpecArea] = useState('');
   const [selectedSpecLevel, setSelectedSpecLevel] = useState('');
   const [selectedSpecYears, setSelectedSpecYears] = useState<number>(0);
+
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
 
   // preload existing specialization
   useEffect(() => {
@@ -304,15 +325,71 @@ export default function TechnicalProfilePage() {
 
   useEffect(() => {
     if (profile?.technicalProfile) {
-      setSfiaLevelGeneral(profile.technicalProfile.sfiaLevelGeneral || 1);
-      setMbti(profile.technicalProfile.mbti || '');
+      const values = {
+        sfiaLevelGeneral: profile.technicalProfile.sfiaLevelGeneral || 1,
+        mbti: profile.technicalProfile.mbti || '',
+      };
+
+      setSfiaLevelGeneral(values.sfiaLevelGeneral);
+      setMbti(values.mbti);
+
+      // Set original values for comparison
+      setOriginalValues(values);
     }
   }, [profile]);
+
+  // Check for changes whenever form values change
+  useEffect(() => {
+    const currentValues = {
+      sfiaLevelGeneral,
+      mbti,
+    };
+
+    const hasFormChanges = Object.keys(currentValues).some(
+      (key) => currentValues[key as keyof typeof currentValues] !== originalValues[key as keyof typeof originalValues],
+    );
+
+    setHasChanges(hasFormChanges);
+  }, [sfiaLevelGeneral, mbti, originalValues]);
+
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (!mbti) incomplete.push('tipo de personalidad MBTI');
+    if (sfiaLevelGeneral <= 1) incomplete.push('nivel SFIA general');
+    if (technologies.length === 0) incomplete.push('al menos una tecnología');
+    if (!profile?.technicalProfile?.specializedRoles || profile.technicalProfile.specializedRoles.length === 0) {
+      incomplete.push('especialización técnica');
+    }
+    return incomplete;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!mbti) {
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+
+    await submitForm();
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmSubmit = () => {
+    setIsConfirmDialogOpen(false);
+    if (hasChanges) {
+      submitForm(true);
+    } else {
+      router.push('/profile/experience');
+    }
+  };
+
+  // Separate submit logic
+  const submitForm = async (skipValidations: boolean = false) => {
+    if (!skipValidations && !mbti) {
       toast.error('Por favor seleccione un tipo de personalidad MBTI');
       return;
     }
@@ -655,6 +732,7 @@ export default function TechnicalProfilePage() {
                     value={mbtiTypes.find((type) => type.value === mbti)}
                     onChange={(selected) => setMbti((selected as any)?.value ?? '')}
                     placeholder="Seleccionar tipo MBTI..."
+                    isSearchable={true}
                   />
                 </div>
               </CardContent>
@@ -670,7 +748,7 @@ export default function TechnicalProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4 overflow-visible">
                 {/* formulario de nueva especialización */}
-                <div>
+                <div className="space-y-2">
                   <Label>Rol Especializado</Label>
                   <Select
                     placeholder="Seleccionar rol..."
@@ -687,10 +765,11 @@ export default function TechnicalProfilePage() {
                       setSelectedSpecArea('');
                       setSelectedSpecLevel('');
                     }}
+                    isSearchable={true}
                   />
                 </div>
                 {selectedSpecRole && (
-                  <div>
+                  <div className="space-y-2">
                     <Label>Área</Label>
                     <Select
                       placeholder="Seleccionar área..."
@@ -701,13 +780,14 @@ export default function TechnicalProfilePage() {
                       }
                       value={selectedSpecArea ? { value: selectedSpecArea, label: selectedSpecArea } : undefined}
                       onChange={(opt) => setSelectedSpecArea((opt as any)?.value || '')}
+                      isSearchable={true}
                     />
                   </div>
                 )}
                 {/* Nivel y Años disponibles siempre si hay rol (nuevo) o se está editando */}
                 {(selectedSpecRole || editingSpecId) && (
                   <>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Nivel de Experiencia</Label>
                       <Select
                         placeholder="Seleccionar nivel..."
@@ -721,7 +801,7 @@ export default function TechnicalProfilePage() {
                         isDisabled={!!editingSpecId}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Años de Experiencia</Label>
                       <Input
                         type="number"
@@ -908,7 +988,7 @@ export default function TechnicalProfilePage() {
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                  <div>
+                  <div className="space-y-2">
                     <Label>Tecnología *</Label>
                     <Select
                       options={availableTechnologies.map((tech) => ({
@@ -923,6 +1003,7 @@ export default function TechnicalProfilePage() {
                       }
                       onChange={(selected) => setSelectedTechnology((selected as any)?.value ?? '')}
                       placeholder="Seleccionar..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex items-center gap-2">
@@ -933,7 +1014,7 @@ export default function TechnicalProfilePage() {
                       }
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Nivel SFIA</Label>
                     <Select
                       options={sfiaLevels.map((level) => ({ value: level.value, label: `Nivel ${level.value}` }))}
@@ -941,7 +1022,7 @@ export default function TechnicalProfilePage() {
                       onChange={(selected) => setSfiaLevel((selected as any)?.value ?? 1)}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Años de Experiencia</Label>
                     <Input
                       type="number"
@@ -951,7 +1032,7 @@ export default function TechnicalProfilePage() {
                       onChange={(e) => setYearsExperience(Number(e.target.value))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Versión</Label>
                     <Input
                       placeholder="ej: v18, 3.9, Latest"
@@ -1100,7 +1181,7 @@ export default function TechnicalProfilePage() {
                 Anterior
               </Button>
               <Button type="submit" className={buttonStyles.navigation}>
-                Guardar y Continuar
+                {hasChanges ? 'Guardar y Continuar' : 'Siguiente'}
               </Button>
             </div>
           </div>
@@ -1216,6 +1297,29 @@ export default function TechnicalProfilePage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmation Dialog for Incomplete Fields */}
+        <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+                ¿Continuar sin completar?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+                Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+              <AlertDialogCancel className={buttonStyles.outline}>Volver a completar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSubmit} className={buttonStyles.primary}>
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Overlay for AlertDialog */}
+        {isConfirmDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
       </div>
     </div>
   );

@@ -64,21 +64,15 @@ const commonInterests = [
   'Cocina',
   'Fotografía',
   'Jardinería',
-  'Pintura',
   'Escritura',
   'Videojuegos',
-  'Natación',
   'Yoga',
-  'Meditación',
   'Senderismo',
   'Ciclismo',
-  'Baile',
   'Teatro',
   'Cine',
   'Viajes',
-  'Idiomas',
   'Programación',
-  'Diseño',
 ];
 
 interface InterestFormData {
@@ -98,6 +92,10 @@ export default function PersonalInterestsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [interestToDelete, setInterestToDelete] = useState<string | null>(null);
 
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
+
   // Form state
   const [formData, setFormData] = useState<InterestFormData>({
     name: '',
@@ -115,6 +113,40 @@ export default function PersonalInterestsPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importPreview, setImportPreview] = useState<JsonImportItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Track when interests are added/updated/deleted
+  const trackChange = () => {
+    setHasChanges(true);
+    // Reset to false after 30 seconds
+    setTimeout(() => setHasChanges(false), 30000);
+  };
+
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (interests.length === 0) incomplete.push('al menos un interés personal');
+    return incomplete;
+  };
+
+  // Handle navigation with suggestions
+  const handleFinish = () => {
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+    router.push('/profile/');
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmFinish = () => {
+    setIsConfirmDialogOpen(false);
+    router.push('/profile/');
+  };
 
   // Loading state management
   const loadingState = useProfileLoadingState(
@@ -179,6 +211,7 @@ export default function PersonalInterestsPage() {
         });
         toast.success('Interés agregado correctamente');
       }
+      trackChange();
       resetForm();
     } catch (_error) {
       // Error handling could be improved with proper user notification
@@ -207,6 +240,7 @@ export default function PersonalInterestsPage() {
 
     try {
       await deleteInterest(interestToDelete);
+      trackChange();
       toast.success('Interés eliminado correctamente');
     } catch (_error) {
       // Error handling could be improved with proper user notification
@@ -299,6 +333,7 @@ export default function PersonalInterestsPage() {
           interestLevel: item.interestLevel,
         });
       }
+      trackChange();
       toast.success(`${selectedItems.length} intereses importados correctamente`);
       setJsonImportOpen(false);
       setJsonInput('');
@@ -393,7 +428,7 @@ export default function PersonalInterestsPage() {
                           Ejemplo
                         </Button>
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label>O pegue el JSON aquí:</Label>
                         <TextArea
                           placeholder="Pegue su JSON aquí..."
@@ -459,24 +494,54 @@ export default function PersonalInterestsPage() {
                       <DialogDescription>Complete la información del interés personal</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="name">Nombre del Interés *</Label>
-                        <Input
-                          id="name"
-                          required
-                          placeholder="Ej: Ajedrez, Lectura, Música..."
-                          value={formData.name}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                          list="common-interests"
-                        />
-                        <datalist id="common-interests">
-                          {commonInterests.map((interest) => (
-                            <option key={interest} value={interest} />
-                          ))}
-                        </datalist>
+                        <div className="space-y-3">
+                          {/* Selector de intereses comunes */}
+                          <div>
+                            <Label className="text-sm text-slate-600">Intereses Populares</Label>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {commonInterests.map((interest) => (
+                                <Button
+                                  key={interest}
+                                  type="button"
+                                  variant={formData.name === interest ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setFormData((prev) => ({ ...prev, name: interest }))}
+                                  className="h-8 text-xs"
+                                >
+                                  {interest}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Input para interés personalizado */}
+                          <div>
+                            <Label htmlFor="custom-interest" className="text-sm text-slate-600">
+                              O escriba un interés personalizado
+                            </Label>
+                            <Input
+                              id="custom-interest"
+                              value={formData.name}
+                              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                              placeholder="Escriba su interés personalizado..."
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+
+                        {formData.name && !commonInterests.includes(formData.name) && (
+                          <div className="flex items-center gap-2 text-sm text-blue-600">
+                            <Badge variant="outline" className="text-xs">
+                              Personalizado
+                            </Badge>
+                            <span>&quot;{formData.name}&quot; será agregado como interés personalizado</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="duration">Duración de Sesión (minutos)</Label>
                         <Input
                           id="duration"
@@ -495,7 +560,7 @@ export default function PersonalInterestsPage() {
                         <p className="mt-1 text-sm text-slate-500">Tiempo típico que dedica por sesión</p>
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label>Frecuencia *</Label>
                         <Select
                           options={frequencyOptions}
@@ -507,10 +572,11 @@ export default function PersonalInterestsPage() {
                             }))
                           }
                           placeholder="Seleccionar frecuencia..."
+                          isSearchable={true}
                         />
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label>Nivel de Interés (Escala Likert 1-5) *</Label>
                         <Select
                           options={interestLevelOptions}
@@ -522,6 +588,7 @@ export default function PersonalInterestsPage() {
                             }))
                           }
                           placeholder="Seleccionar nivel..."
+                          isSearchable={true}
                         />
                       </div>
 
@@ -620,18 +687,40 @@ export default function PersonalInterestsPage() {
             </Button>
             <Button
               onClick={() => {
-                toast.success('Perfil completado exitosamente');
-                router.push('/profile/');
+                handleFinish();
+                if (interests.length > 0) {
+                  toast.success('Perfil completado exitosamente');
+                }
               }}
-              disabled={interests.length === 0}
               className={buttonStyles.finish}
             >
-              Finalizar Perfil
+              {hasChanges ? 'Guardar y Finalizar' : 'Finalizar Perfil'}
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Confirmation Dialog for Incomplete Fields */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Continuar sin completar?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className={buttonStyles.outline}>Volver a completar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFinish} className={buttonStyles.primary}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Interest Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
           <AlertDialogHeader>
@@ -649,8 +738,8 @@ export default function PersonalInterestsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Overlay for AlertDialog */}
-      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
+      {/* Overlay for AlertDialogs */}
+      {(isDeleteDialogOpen || isConfirmDialogOpen) && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

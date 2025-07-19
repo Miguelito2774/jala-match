@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, Search, X } from 'lucide-react';
 
 interface SelectOption<T = any> {
   value: T;
   label: string;
-  // Allow additional properties such as flags or city names
   [key: string]: any;
 }
 
@@ -23,6 +22,7 @@ type SelectProps<T> = {
   value?: SelectOption<T> | SelectOption<T>[];
   isDisabled?: boolean;
   formatOptionLabel?: (option: SelectOption<T>) => React.ReactNode;
+  isSearchable?: boolean;
 };
 
 export const Select = <T,>({
@@ -35,14 +35,50 @@ export const Select = <T,>({
   value,
   isDisabled = false,
   formatOptionLabel,
+  isSearchable = false,
 }: SelectProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState<SelectOption<T> | null>(
     defaultValue && !Array.isArray(defaultValue) ? defaultValue : null,
   );
   const [multiSelected, setMultiSelected] = useState<SelectOption<T>[]>(
     (Array.isArray(defaultValue) ? defaultValue : []) as SelectOption<T>[],
   );
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && isSearchable && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen, isSearchable]);
+
+  // Filter options based on search term
+  const filteredOptions =
+    isSearchable && searchTerm
+      ? options.filter((option) => option.label.toLowerCase().includes(searchTerm.toLowerCase()))
+      : options;
 
   const handleSelect = (option: SelectOption<T>) => {
     if (isMulti) {
@@ -61,13 +97,23 @@ export const Select = <T,>({
       setSelected(option);
       onChange(option);
       setIsOpen(false);
+      setSearchTerm('');
+    }
+  };
+
+  const handleToggleDropdown = () => {
+    if (!isDisabled) {
+      setIsOpen(!isOpen);
+      if (!isOpen) {
+        setSearchTerm('');
+      }
     }
   };
 
   const currentValue = isMulti ? (value as SelectOption<T>[]) || multiSelected : (value as SelectOption<T>) || selected;
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative', className)} ref={containerRef}>
       <div
         className={cn(
           'flex w-full items-center justify-between rounded-md border border-gray-300 p-2',
@@ -75,7 +121,7 @@ export const Select = <T,>({
           isOpen && !isDisabled && 'ring-primary border-transparent ring-2',
           isDisabled && 'cursor-not-allowed opacity-50',
         )}
-        onClick={() => !isDisabled && setIsOpen(!isOpen)}
+        onClick={handleToggleDropdown}
       >
         <div className="flex flex-wrap gap-1">
           {isMulti ? (
@@ -118,22 +164,45 @@ export const Select = <T,>({
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-          {options.map((option, index) => {
-            const isSelected = isMulti
-              ? (currentValue as SelectOption<T>[]).some((item) => item.value === option.value)
-              : (currentValue as SelectOption<T>)?.value === option.value;
-
-            return (
-              <div
-                key={`option-${option.value ?? index}`}
-                className={cn('cursor-pointer px-3 py-2 hover:bg-gray-100', isSelected && 'bg-primary/10 text-primary')}
-                onClick={() => handleSelect(option)}
-              >
-                {formatOptionLabel ? formatOptionLabel(option) : option.label}
+        <div className="absolute z-[100] mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+          {isSearchable && (
+            <div className="sticky top-0 border-b border-gray-200 bg-white p-2">
+              <div className="relative">
+                <Search className="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded border border-gray-300 py-1 pr-2 pl-8 text-sm focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
-            );
-          })}
+            </div>
+          )}
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option, index) => {
+              const isSelected = isMulti
+                ? (currentValue as SelectOption<T>[]).some((item) => item.value === option.value)
+                : (currentValue as SelectOption<T>)?.value === option.value;
+
+              return (
+                <div
+                  key={`option-${option.value ?? index}`}
+                  className={cn(
+                    'cursor-pointer px-3 py-2 hover:bg-gray-100',
+                    isSelected && 'bg-primary/10 text-primary',
+                  )}
+                  onClick={() => handleSelect(option)}
+                >
+                  {formatOptionLabel ? formatOptionLabel(option) : option.label}
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-3 py-2 text-sm text-gray-500">No se encontraron resultados</div>
+          )}
         </div>
       )}
     </div>

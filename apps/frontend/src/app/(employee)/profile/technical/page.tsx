@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation';
 
 import { Select } from '@/components/atoms/inputs/Select';
 import { PageLoader } from '@/components/atoms/loaders/PageLoader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +29,7 @@ import { findSpecializedRoleId, useAvailableRolesAndAreas } from '@/hooks/useAva
 import { useEmployeeProfile, useEmployeeTechnologies, type EmployeeTechnology } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
 import { API_BASE_URL } from '@/lib/api';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 import {
   Brain,
@@ -36,6 +47,7 @@ import {
   Trash2,
   Upload,
   Wrench,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -248,6 +260,13 @@ export default function TechnicalProfilePage() {
   const [sfiaLevelGeneral, setSfiaLevelGeneral] = useState<number>(1);
   const [mbti, setMbti] = useState<string>('');
 
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    sfiaLevelGeneral: 1,
+    mbti: '',
+  });
+
   // Technology form states
   const [selectedTechnology, setSelectedTechnology] = useState<string>('');
   const [sfiaLevel, setSfiaLevel] = useState<number>(1);
@@ -270,6 +289,10 @@ export default function TechnicalProfilePage() {
   const [selectedSpecArea, setSelectedSpecArea] = useState('');
   const [selectedSpecLevel, setSelectedSpecLevel] = useState('');
   const [selectedSpecYears, setSelectedSpecYears] = useState<number>(0);
+
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
 
   // preload existing specialization
   useEffect(() => {
@@ -302,15 +325,71 @@ export default function TechnicalProfilePage() {
 
   useEffect(() => {
     if (profile?.technicalProfile) {
-      setSfiaLevelGeneral(profile.technicalProfile.sfiaLevelGeneral || 1);
-      setMbti(profile.technicalProfile.mbti || '');
+      const values = {
+        sfiaLevelGeneral: profile.technicalProfile.sfiaLevelGeneral || 1,
+        mbti: profile.technicalProfile.mbti || '',
+      };
+
+      setSfiaLevelGeneral(values.sfiaLevelGeneral);
+      setMbti(values.mbti);
+
+      // Set original values for comparison
+      setOriginalValues(values);
     }
   }, [profile]);
+
+  // Check for changes whenever form values change
+  useEffect(() => {
+    const currentValues = {
+      sfiaLevelGeneral,
+      mbti,
+    };
+
+    const hasFormChanges = Object.keys(currentValues).some(
+      (key) => currentValues[key as keyof typeof currentValues] !== originalValues[key as keyof typeof originalValues],
+    );
+
+    setHasChanges(hasFormChanges);
+  }, [sfiaLevelGeneral, mbti, originalValues]);
+
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (!mbti) incomplete.push('tipo de personalidad MBTI');
+    if (sfiaLevelGeneral <= 1) incomplete.push('nivel SFIA general');
+    if (technologies.length === 0) incomplete.push('al menos una tecnología');
+    if (!profile?.technicalProfile?.specializedRoles || profile.technicalProfile.specializedRoles.length === 0) {
+      incomplete.push('especialización técnica');
+    }
+    return incomplete;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!mbti) {
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+
+    await submitForm();
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmSubmit = () => {
+    setIsConfirmDialogOpen(false);
+    if (hasChanges) {
+      submitForm(true);
+    } else {
+      router.push('/profile/experience');
+    }
+  };
+
+  // Separate submit logic
+  const submitForm = async (skipValidations: boolean = false) => {
+    if (!skipValidations && !mbti) {
       toast.error('Por favor seleccione un tipo de personalidad MBTI');
       return;
     }
@@ -653,6 +732,7 @@ export default function TechnicalProfilePage() {
                     value={mbtiTypes.find((type) => type.value === mbti)}
                     onChange={(selected) => setMbti((selected as any)?.value ?? '')}
                     placeholder="Seleccionar tipo MBTI..."
+                    isSearchable={true}
                   />
                 </div>
               </CardContent>
@@ -668,7 +748,7 @@ export default function TechnicalProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4 overflow-visible">
                 {/* formulario de nueva especialización */}
-                <div>
+                <div className="space-y-2">
                   <Label>Rol Especializado</Label>
                   <Select
                     placeholder="Seleccionar rol..."
@@ -685,10 +765,11 @@ export default function TechnicalProfilePage() {
                       setSelectedSpecArea('');
                       setSelectedSpecLevel('');
                     }}
+                    isSearchable={true}
                   />
                 </div>
                 {selectedSpecRole && (
-                  <div>
+                  <div className="space-y-2">
                     <Label>Área</Label>
                     <Select
                       placeholder="Seleccionar área..."
@@ -699,13 +780,14 @@ export default function TechnicalProfilePage() {
                       }
                       value={selectedSpecArea ? { value: selectedSpecArea, label: selectedSpecArea } : undefined}
                       onChange={(opt) => setSelectedSpecArea((opt as any)?.value || '')}
+                      isSearchable={true}
                     />
                   </div>
                 )}
                 {/* Nivel y Años disponibles siempre si hay rol (nuevo) o se está editando */}
                 {(selectedSpecRole || editingSpecId) && (
                   <>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Nivel de Experiencia</Label>
                       <Select
                         placeholder="Seleccionar nivel..."
@@ -719,7 +801,7 @@ export default function TechnicalProfilePage() {
                         isDisabled={!!editingSpecId}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Años de Experiencia</Label>
                       <Input
                         type="number"
@@ -855,7 +937,13 @@ export default function TechnicalProfilePage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setJsonImportOpen(true)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setJsonImportOpen(true)}
+                    className={buttonStyles.utility}
+                  >
                     <Upload className="mr-2 h-4 w-4" />
                     Importar JSON
                   </Button>
@@ -864,10 +952,43 @@ export default function TechnicalProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Add/Edit Technology Form */}
-              <div className="rounded-lg border bg-slate-50 p-4">
-                <h4 className="mb-4 font-medium">{editingTechId ? 'Editar Tecnología' : 'Agregar Nueva Tecnología'}</h4>
+              <div
+                className={`rounded-lg border p-4 transition-all duration-200 ${
+                  editingTechId
+                    ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50'
+                    : 'border-slate-300 bg-slate-50'
+                }`}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {editingTechId ? (
+                      <div className="rounded-full bg-orange-100 p-2">
+                        <Edit className="h-5 w-5 text-orange-600" />
+                      </div>
+                    ) : (
+                      <div className="rounded-full bg-blue-100 p-2">
+                        <Plus className="h-5 w-5 text-blue-600" />
+                      </div>
+                    )}
+                    <div>
+                      <h4 className={`font-semibold ${editingTechId ? 'text-orange-800' : 'text-slate-800'}`}>
+                        {editingTechId ? 'Editar Tecnología' : 'Agregar Nueva Tecnología'}
+                      </h4>
+                      <p className={`text-sm ${editingTechId ? 'text-orange-600' : 'text-slate-600'}`}>
+                        {editingTechId
+                          ? 'Modifique los campos que desea actualizar'
+                          : 'Complete la información de la nueva tecnología'}
+                      </p>
+                    </div>
+                  </div>
+                  {editingTechId && (
+                    <div className="rounded-lg bg-orange-200 px-3 py-1">
+                      <span className="text-sm font-medium text-orange-800">MODO EDICIÓN</span>
+                    </div>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-                  <div>
+                  <div className="space-y-2">
                     <Label>Tecnología *</Label>
                     <Select
                       options={availableTechnologies.map((tech) => ({
@@ -882,6 +1003,7 @@ export default function TechnicalProfilePage() {
                       }
                       onChange={(selected) => setSelectedTechnology((selected as any)?.value ?? '')}
                       placeholder="Seleccionar..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex items-center gap-2">
@@ -892,7 +1014,7 @@ export default function TechnicalProfilePage() {
                       }
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Nivel SFIA</Label>
                     <Select
                       options={sfiaLevels.map((level) => ({ value: level.value, label: `Nivel ${level.value}` }))}
@@ -900,7 +1022,7 @@ export default function TechnicalProfilePage() {
                       onChange={(selected) => setSfiaLevel((selected as any)?.value ?? 1)}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Años de Experiencia</Label>
                     <Input
                       type="number"
@@ -910,7 +1032,7 @@ export default function TechnicalProfilePage() {
                       onChange={(e) => setYearsExperience(Number(e.target.value))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label>Versión</Label>
                     <Input
                       placeholder="ej: v18, 3.9, Latest"
@@ -931,14 +1053,17 @@ export default function TechnicalProfilePage() {
                         setYearsExperience(0);
                         setVersion('');
                       }}
+                      className={buttonStyles.outline}
                     >
-                      Cancelar
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar Edición
                     </Button>
                   )}
                   <Button
                     type="button"
                     onClick={editingTechId ? handleUpdateTechnology : handleAddTechnology}
                     disabled={!selectedTechnology}
+                    className={editingTechId ? buttonStyles.primary : buttonStyles.secondary}
                   >
                     {editingTechId ? (
                       <>
@@ -966,12 +1091,34 @@ export default function TechnicalProfilePage() {
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                         {techs.map((tech) => {
                           const techInfo = availableTechnologies.find((t) => t.id === tech.technologyId);
+                          const isBeingEdited = editingTechId === tech.id;
                           return (
-                            <div key={tech.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                            <div
+                              key={tech.id}
+                              className={`rounded-lg border p-4 shadow-sm transition-all duration-200 ${
+                                isBeingEdited
+                                  ? 'border-orange-400 bg-gradient-to-r from-orange-50 to-amber-50 ring-2 ring-orange-200'
+                                  : 'border-slate-200 bg-white hover:border-slate-300'
+                              }`}
+                            >
+                              {isBeingEdited && (
+                                <div className="mb-3 flex items-center gap-2">
+                                  <div className="rounded-full bg-orange-100 p-1">
+                                    <Edit className="h-3 w-3 text-orange-600" />
+                                  </div>
+                                  <span className="text-xs font-medium text-orange-700">EDITANDO</span>
+                                </div>
+                              )}
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <h5 className="font-medium text-slate-900">{techInfo?.name}</h5>
-                                  <div className="mt-1 space-y-1 text-sm text-slate-600">
+                                  <h5 className={`font-medium ${isBeingEdited ? 'text-orange-800' : 'text-slate-900'}`}>
+                                    {techInfo?.name}
+                                  </h5>
+                                  <div
+                                    className={`mt-1 space-y-1 text-sm ${
+                                      isBeingEdited ? 'text-orange-600' : 'text-slate-600'
+                                    }`}
+                                  >
                                     <div>SFIA: Nivel {tech.sfiaLevel}</div>
                                     <div>{tech.yearsExperience} años de experiencia</div>
                                     {tech.version && <div>Versión: {tech.version}</div>}
@@ -983,6 +1130,7 @@ export default function TechnicalProfilePage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleEditTechnology(tech)}
+                                    className={buttonStyles.iconEdit}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -991,6 +1139,7 @@ export default function TechnicalProfilePage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleDeleteTechnology(tech.id)}
+                                    className={buttonStyles.iconDelete}
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -1014,14 +1163,26 @@ export default function TechnicalProfilePage() {
           </Card>
 
           <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => router.push('/profile')}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/profile')}
+              className={buttonStyles.outline}
+            >
               Volver
             </Button>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => router.push('/profile/general')}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push('/profile/general')}
+                className={buttonStyles.outline}
+              >
                 Anterior
               </Button>
-              <Button type="submit">Guardar y Continuar</Button>
+              <Button type="submit" className={buttonStyles.navigation}>
+                {hasChanges ? 'Guardar y Continuar' : 'Siguiente'}
+              </Button>
             </div>
           </div>
         </form>
@@ -1041,12 +1202,17 @@ export default function TechnicalProfilePage() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={downloadSampleJson} className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadSampleJson}
+                  className={`${buttonStyles.utility} flex items-center gap-2`}
+                >
                   <Download className="h-4 w-4" />
                   Descargar Ejemplo
                 </Button>
                 <Label htmlFor="tech-json-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" asChild className={buttonStyles.utility}>
                     <span className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       Seleccionar Archivo JSON
@@ -1111,12 +1277,13 @@ export default function TechnicalProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setJsonImportOpen(false)}>
+                    <Button variant="outline" onClick={() => setJsonImportOpen(false)} className={buttonStyles.outline}>
                       Cancelar
                     </Button>
                     <Button
                       onClick={handleImportConfirm}
                       disabled={!importPreview.some((item) => item.selected) || isImporting}
+                      className={buttonStyles.secondary}
                     >
                       {isImporting
                         ? 'Importando...'
@@ -1130,6 +1297,29 @@ export default function TechnicalProfilePage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmation Dialog for Incomplete Fields */}
+        <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+          <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+                ¿Continuar sin completar?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+                Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+              <AlertDialogCancel className={buttonStyles.outline}>Volver a completar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmSubmit} className={buttonStyles.primary}>
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Overlay for AlertDialog */}
+        {isConfirmDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
       </div>
     </div>
   );

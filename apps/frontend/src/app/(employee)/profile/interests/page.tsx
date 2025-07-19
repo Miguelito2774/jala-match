@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { PersonalInterest, usePersonalInterests } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
+import { buttonStyles } from '@/lib/buttonStyles';
 
 import { Download, Edit, Heart, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -63,21 +64,15 @@ const commonInterests = [
   'Cocina',
   'Fotografía',
   'Jardinería',
-  'Pintura',
   'Escritura',
   'Videojuegos',
-  'Natación',
   'Yoga',
-  'Meditación',
   'Senderismo',
   'Ciclismo',
-  'Baile',
   'Teatro',
   'Cine',
   'Viajes',
-  'Idiomas',
   'Programación',
-  'Diseño',
 ];
 
 interface InterestFormData {
@@ -97,6 +92,10 @@ export default function PersonalInterestsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [interestToDelete, setInterestToDelete] = useState<string | null>(null);
 
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
+
   // Form state
   const [formData, setFormData] = useState<InterestFormData>({
     name: '',
@@ -114,6 +113,40 @@ export default function PersonalInterestsPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importPreview, setImportPreview] = useState<JsonImportItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Track when interests are added/updated/deleted
+  const trackChange = () => {
+    setHasChanges(true);
+    // Reset to false after 30 seconds
+    setTimeout(() => setHasChanges(false), 30000);
+  };
+
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (interests.length === 0) incomplete.push('al menos un interés personal');
+    return incomplete;
+  };
+
+  // Handle navigation with suggestions
+  const handleFinish = () => {
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+    router.push('/profile/');
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmFinish = () => {
+    setIsConfirmDialogOpen(false);
+    router.push('/profile/');
+  };
 
   // Loading state management
   const loadingState = useProfileLoadingState(
@@ -178,6 +211,7 @@ export default function PersonalInterestsPage() {
         });
         toast.success('Interés agregado correctamente');
       }
+      trackChange();
       resetForm();
     } catch (_error) {
       // Error handling could be improved with proper user notification
@@ -206,6 +240,7 @@ export default function PersonalInterestsPage() {
 
     try {
       await deleteInterest(interestToDelete);
+      trackChange();
       toast.success('Interés eliminado correctamente');
     } catch (_error) {
       // Error handling could be improved with proper user notification
@@ -298,6 +333,7 @@ export default function PersonalInterestsPage() {
           interestLevel: item.interestLevel,
         });
       }
+      trackChange();
       toast.success(`${selectedItems.length} intereses importados correctamente`);
       setJsonImportOpen(false);
       setJsonInput('');
@@ -365,7 +401,7 @@ export default function PersonalInterestsPage() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Dialog open={jsonImportOpen} onOpenChange={setJsonImportOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className={buttonStyles.utility}>
                       <Upload className="mr-2 h-4 w-4" />
                       Importar JSON
                     </Button>
@@ -387,12 +423,12 @@ export default function PersonalInterestsPage() {
                             className="file:mr-2 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-sm"
                           />
                         </div>
-                        <Button variant="outline" onClick={downloadSampleJson}>
+                        <Button variant="outline" onClick={downloadSampleJson} className={buttonStyles.utility}>
                           <Download className="mr-2 h-4 w-4" />
                           Ejemplo
                         </Button>
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label>O pegue el JSON aquí:</Label>
                         <TextArea
                           placeholder="Pegue su JSON aquí..."
@@ -422,10 +458,18 @@ export default function PersonalInterestsPage() {
                             ))}
                           </div>
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setJsonImportOpen(false)}>
+                            <Button
+                              variant="outline"
+                              onClick={() => setJsonImportOpen(false)}
+                              className={buttonStyles.outline}
+                            >
                               Cancelar
                             </Button>
-                            <Button onClick={handleImportConfirm} disabled={isImporting}>
+                            <Button
+                              onClick={handleImportConfirm}
+                              disabled={isImporting}
+                              className={buttonStyles.primary}
+                            >
                               {isImporting
                                 ? 'Importando...'
                                 : `Importar ${importPreview.filter((i) => i.selected).length} intereses`}
@@ -439,7 +483,7 @@ export default function PersonalInterestsPage() {
 
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm">
+                    <Button size="sm" className={buttonStyles.secondary}>
                       <Plus className="mr-2 h-4 w-4" />
                       Agregar Interés
                     </Button>
@@ -450,24 +494,54 @@ export default function PersonalInterestsPage() {
                       <DialogDescription>Complete la información del interés personal</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="name">Nombre del Interés *</Label>
-                        <Input
-                          id="name"
-                          required
-                          placeholder="Ej: Ajedrez, Lectura, Música..."
-                          value={formData.name}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                          list="common-interests"
-                        />
-                        <datalist id="common-interests">
-                          {commonInterests.map((interest) => (
-                            <option key={interest} value={interest} />
-                          ))}
-                        </datalist>
+                        <div className="space-y-3">
+                          {/* Selector de intereses comunes */}
+                          <div>
+                            <Label className="text-sm text-slate-600">Intereses Populares</Label>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {commonInterests.map((interest) => (
+                                <Button
+                                  key={interest}
+                                  type="button"
+                                  variant={formData.name === interest ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setFormData((prev) => ({ ...prev, name: interest }))}
+                                  className="h-8 text-xs"
+                                >
+                                  {interest}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Input para interés personalizado */}
+                          <div>
+                            <Label htmlFor="custom-interest" className="text-sm text-slate-600">
+                              O escriba un interés personalizado
+                            </Label>
+                            <Input
+                              id="custom-interest"
+                              value={formData.name}
+                              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                              placeholder="Escriba su interés personalizado..."
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+
+                        {formData.name && !commonInterests.includes(formData.name) && (
+                          <div className="flex items-center gap-2 text-sm text-blue-600">
+                            <Badge variant="outline" className="text-xs">
+                              Personalizado
+                            </Badge>
+                            <span>&quot;{formData.name}&quot; será agregado como interés personalizado</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label htmlFor="duration">Duración de Sesión (minutos)</Label>
                         <Input
                           id="duration"
@@ -486,7 +560,7 @@ export default function PersonalInterestsPage() {
                         <p className="mt-1 text-sm text-slate-500">Tiempo típico que dedica por sesión</p>
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label>Frecuencia *</Label>
                         <Select
                           options={frequencyOptions}
@@ -498,10 +572,11 @@ export default function PersonalInterestsPage() {
                             }))
                           }
                           placeholder="Seleccionar frecuencia..."
+                          isSearchable={true}
                         />
                       </div>
 
-                      <div>
+                      <div className="space-y-2">
                         <Label>Nivel de Interés (Escala Likert 1-5) *</Label>
                         <Select
                           options={interestLevelOptions}
@@ -513,14 +588,17 @@ export default function PersonalInterestsPage() {
                             }))
                           }
                           placeholder="Seleccionar nivel..."
+                          isSearchable={true}
                         />
                       </div>
 
                       <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={resetForm}>
+                        <Button type="button" variant="outline" onClick={resetForm} className={buttonStyles.outline}>
                           Cancelar
                         </Button>
-                        <Button onClick={handleSubmit}>{editingId ? 'Actualizar' : 'Agregar'} Interés</Button>
+                        <Button onClick={handleSubmit} className={buttonStyles.primary}>
+                          {editingId ? 'Actualizar' : 'Agregar'} Interés
+                        </Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -541,10 +619,20 @@ export default function PersonalInterestsPage() {
                     <div className="mb-3 flex items-start justify-between">
                       <h3 className="text-lg font-semibold">{interest.name}</h3>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(interest)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(interest)}
+                          className={buttonStyles.utility}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(interest.id)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(interest.id)}
+                          className={buttonStyles.danger}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -576,7 +664,7 @@ export default function PersonalInterestsPage() {
                 <p className="mb-4 text-slate-500">
                   Agregue sus intereses personales y hobbies para completar su perfil
                 </p>
-                <Button onClick={() => setIsFormOpen(true)}>
+                <Button onClick={() => setIsFormOpen(true)} className={buttonStyles.secondary}>
                   <Plus className="mr-2 h-4 w-4" />
                   Agregar Primer Interés
                 </Button>
@@ -586,26 +674,53 @@ export default function PersonalInterestsPage() {
         </Card>
 
         <div className="mt-6 flex justify-between">
-          <Button variant="outline" onClick={() => router.push('/profile')}>
+          <Button variant="outline" onClick={() => router.push('/profile')} className={buttonStyles.outline}>
             Volver
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push('/profile/experience')}>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/profile/experience')}
+              className={buttonStyles.navigation}
+            >
               Anterior
             </Button>
             <Button
               onClick={() => {
-                toast.success('Perfil completado exitosamente');
-                router.push('/profile/');
+                handleFinish();
+                if (interests.length > 0) {
+                  toast.success('Perfil completado exitosamente');
+                }
               }}
-              disabled={interests.length === 0}
+              className={buttonStyles.finish}
             >
-              Finalizar Perfil
+              {hasChanges ? 'Guardar y Finalizar' : 'Finalizar Perfil'}
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Confirmation Dialog for Incomplete Fields */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Continuar sin completar?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className={buttonStyles.outline}>Volver a completar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFinish} className={buttonStyles.primary}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Interest Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
           <AlertDialogHeader>
@@ -615,21 +730,16 @@ export default function PersonalInterestsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex justify-end gap-3">
-            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
-            >
+            <AlertDialogCancel className={buttonStyles.outline}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className={buttonStyles.danger}>
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Overlay for AlertDialog */}
-      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
+      {/* Overlay for AlertDialogs */}
+      {(isDeleteDialogOpen || isConfirmDialogOpen) && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

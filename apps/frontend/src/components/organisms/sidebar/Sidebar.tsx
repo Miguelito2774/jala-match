@@ -144,7 +144,7 @@ export const Sidebar = () => {
                   {user.isProfileVerified
                     ? 'Perfil Verificado'
                     : user.hasProfile
-                      ? 'Pendiente Verificación'
+                      ? 'Solicitud Pendiente'
                       : 'Perfil Incompleto'}
                 </span>
               </div>

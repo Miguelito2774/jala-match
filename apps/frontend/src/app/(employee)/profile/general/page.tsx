@@ -22,10 +22,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { EmployeeLanguage, useEmployeeLanguages, useEmployeeProfile } from '@/hooks/useEmployeeProfile';
+import { useEmployeeLanguages, useEmployeeProfile } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
 
-import { Camera, Edit, Globe, Languages, Trash2, User } from 'lucide-react';
+import { Camera, Globe, Languages, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 const countries = [
@@ -115,11 +115,25 @@ export default function GeneralInfoPage() {
   // Language form state
   const [newLanguage, setNewLanguage] = useState('');
   const [newProficiency, setNewProficiency] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [updatingLanguageId, setUpdatingLanguageId] = useState<string | null>(null);
 
   // Delete dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [languageToDelete, setLanguageToDelete] = useState<string | null>(null);
+
+  // Confirmation dialog for incomplete fields
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [incompleteFieldsList, setIncompleteFieldsList] = useState<string[]>([]);
+
+  // Track changes for dynamic button
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    firstName: '',
+    lastName: '',
+    country: '',
+    timezone: '',
+    profilePictureUrl: '',
+  });
 
   const calculateProgress = () => {
     const fields = [firstName, lastName, country, timezone];
@@ -132,19 +146,77 @@ export default function GeneralInfoPage() {
   useEffect(() => {
     if (profile?.generalInfo) {
       const info = profile.generalInfo;
-      setFirstName(info.firstName || '');
-      setLastName(info.lastName || '');
-      setCountry(info.country || '');
-      setTimezone(info.timezone || '');
-      setProfilePictureUrl(info.profilePictureUrl || '');
+      const values = {
+        firstName: info.firstName || '',
+        lastName: info.lastName || '',
+        country: info.country || '',
+        timezone: info.timezone || '',
+        profilePictureUrl: info.profilePictureUrl || '',
+      };
+
+      setFirstName(values.firstName);
+      setLastName(values.lastName);
+      setCountry(values.country);
+      setTimezone(values.timezone);
+      setProfilePictureUrl(values.profilePictureUrl);
+
+      // Set original values for comparison
+      setOriginalValues(values);
     }
   }, [profile]);
+
+  // Check for changes whenever form values change
+  useEffect(() => {
+    const currentValues = {
+      firstName,
+      lastName,
+      country,
+      timezone,
+      profilePictureUrl,
+    };
+
+    const hasFormChanges = Object.keys(currentValues).some(
+      (key) => currentValues[key as keyof typeof currentValues] !== originalValues[key as keyof typeof originalValues],
+    );
+
+    setHasChanges(hasFormChanges);
+  }, [firstName, lastName, country, timezone, profilePictureUrl, originalValues]);
 
   const getInitials = (first: string, last: string) =>
     `${first?.charAt(0) || ''}${last?.charAt(0) || ''}`.toUpperCase();
 
+  // Check for incomplete fields and generate suggestions
+  const getIncompleteSuggestions = () => {
+    const incomplete = [];
+    if (!firstName.trim()) incomplete.push('nombre');
+    if (!lastName.trim()) incomplete.push('apellido');
+    if (!country.trim()) incomplete.push('país');
+    if (!timezone.trim()) incomplete.push('zona horaria');
+    if (languages.length === 0) incomplete.push('al menos un idioma');
+    return incomplete;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const incompleteFields = getIncompleteSuggestions();
+    if (incompleteFields.length > 0) {
+      setIncompleteFieldsList(incompleteFields);
+      setIsConfirmDialogOpen(true);
+      return;
+    }
+
+    await submitForm();
+  };
+
+  // Confirm navigation with incomplete fields
+  const confirmSubmit = () => {
+    setIsConfirmDialogOpen(false);
+    submitForm();
+  };
+
+  // Separate submit logic
+  const submitForm = async () => {
     const payload = {
       firstName,
       lastName,
@@ -175,6 +247,8 @@ export default function GeneralInfoPage() {
       // Convertir idioma a inglés para guardar en BD
       const languageInEnglish = languageMapping[newLanguage] || newLanguage;
       await addLanguage({ language: languageInEnglish, proficiency: newProficiency });
+
+      // Limpiar los campos después de agregar exitosamente
       setNewLanguage('');
       setNewProficiency('');
       toast.success('Idioma agregado correctamente');
@@ -183,34 +257,27 @@ export default function GeneralInfoPage() {
     }
   };
 
-  const handleUpdateLanguage = async () => {
-    if (!editingId || !newLanguage || !newProficiency) {
-      toast.error('Por favor complete todos los campos');
-      return;
-    }
+  const handleEditLanguageSelect = async (langId: string, field: 'language' | 'proficiency', value: string) => {
+    if (!value) return;
 
     try {
-      // Convertir idioma a inglés para guardar en BD
-      const languageInEnglish = languageMapping[newLanguage] || newLanguage;
-      await updateLanguage(editingId, {
-        language: languageInEnglish,
-        proficiency: newProficiency,
-      });
-      setEditingId(null);
-      setNewLanguage('');
-      setNewProficiency('');
+      setUpdatingLanguageId(langId);
+      const currentLang = languages.find((l) => l.id === langId);
+      if (!currentLang) return;
+
+      // Preparar los datos para la actualización
+      const updateData = {
+        language: field === 'language' ? languageMapping[value] || value : currentLang.language,
+        proficiency: field === 'proficiency' ? value : currentLang.proficiency,
+      };
+
+      await updateLanguage(langId, updateData);
       toast.success('Idioma actualizado correctamente');
     } catch (_err) {
       toast.error('Error al actualizar el idioma');
+    } finally {
+      setUpdatingLanguageId(null);
     }
-  };
-
-  const handleEditLanguage = (lang: EmployeeLanguage) => {
-    // Convertir idioma de inglés (BD) a español (frontend) para editar
-    const languageInSpanish = reverseLanguageMapping[lang.language] || lang.language;
-    setNewLanguage(languageInSpanish);
-    setNewProficiency(lang.proficiency);
-    setEditingId(lang.id);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -230,17 +297,6 @@ export default function GeneralInfoPage() {
       setIsDeleteDialogOpen(false);
       setLanguageToDelete(null);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setNewLanguage('');
-    setNewProficiency('');
-  };
-
-  const getProficiencyLabel = (value: string) => {
-    const level = proficiencyLevels.find((l) => l.value === value);
-    return level ? level.label : value;
   };
 
   return (
@@ -293,7 +349,7 @@ export default function GeneralInfoPage() {
                         <Camera className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 space-y-2">
                       <Label htmlFor="profilePicture">URL de Foto de Perfil</Label>
                       <Input
                         id="profilePicture"
@@ -301,13 +357,12 @@ export default function GeneralInfoPage() {
                         placeholder="https://ejemplo.com/mi-foto.jpg"
                         value={profilePictureUrl}
                         onChange={(e) => setProfilePictureUrl(e.target.value)}
-                        className="mt-1"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="firstName">Nombre *</Label>
                       <Input
                         id="firstName"
@@ -317,7 +372,7 @@ export default function GeneralInfoPage() {
                         onChange={(e) => setFirstName(e.target.value)}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor="lastName">Apellido *</Label>
                       <Input
                         id="lastName"
@@ -331,7 +386,7 @@ export default function GeneralInfoPage() {
                 </CardContent>
               </Card>
 
-              <Card className="overflow-visible border-0 bg-white/70 shadow-sm backdrop-blur-sm">
+              <Card className="relative z-50 overflow-visible border-0 bg-white/70 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5 text-slate-600" />
@@ -347,6 +402,7 @@ export default function GeneralInfoPage() {
                       value={countries.find((opt) => opt.value === country)}
                       onChange={(selected) => setCountry((selected as any)?.value ?? '')}
                       placeholder="Seleccionar país..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex items-center gap-2">
@@ -364,6 +420,7 @@ export default function GeneralInfoPage() {
                       value={timezones.find((opt) => opt.value === timezone)}
                       onChange={(selected) => setTimezone((selected as any)?.value ?? '')}
                       placeholder="Seleccionar zona horaria..."
+                      isSearchable={true}
                       formatOptionLabel={(option: any) =>
                         option ? (
                           <div className="flex flex-col">
@@ -378,7 +435,7 @@ export default function GeneralInfoPage() {
               </Card>
 
               {/* Enhanced Languages Section */}
-              <Card className="border-0 bg-white/70 shadow-sm backdrop-blur-sm">
+              <Card className="relative z-40 border-0 bg-white/70 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
                     <Languages className="h-5 w-5 text-slate-600" />
@@ -390,19 +447,49 @@ export default function GeneralInfoPage() {
                   {languages.length > 0 ? (
                     <div className="space-y-3">
                       {languages.map((lang) => (
-                        <div
-                          key={lang.id}
-                          className="flex items-center justify-between rounded-lg border bg-slate-50 p-3"
-                        >
-                          <div>
-                            <span className="font-medium">{lang.language}</span>
-                            <span className="text-slate-600"> - {getProficiencyLabel(lang.proficiency)}</span>
+                        <div key={lang.id} className="flex items-center gap-4 rounded-lg border bg-slate-50 p-4">
+                          <div className="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                              <Label className="text-sm font-medium text-slate-700">Idioma</Label>
+                              <Select
+                                options={commonLanguages}
+                                value={commonLanguages.find(
+                                  (opt) => opt.value === (reverseLanguageMapping[lang.language] || lang.language),
+                                )}
+                                onChange={(selected) => {
+                                  if (selected) {
+                                    handleEditLanguageSelect(lang.id, 'language', (selected as any).value);
+                                  }
+                                }}
+                                placeholder="Seleccionar idioma..."
+                                isSearchable={true}
+                                isDisabled={updatingLanguageId === lang.id}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium text-slate-700">Nivel</Label>
+                              <Select
+                                options={proficiencyLevels}
+                                value={proficiencyLevels.find((opt) => opt.value === lang.proficiency)}
+                                onChange={(selected) => {
+                                  if (selected) {
+                                    handleEditLanguageSelect(lang.id, 'proficiency', (selected as any).value);
+                                  }
+                                }}
+                                placeholder="Seleccionar nivel..."
+                                isDisabled={updatingLanguageId === lang.id}
+                              />
+                            </div>
                           </div>
                           <div className="flex gap-1">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleEditLanguage(lang)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleDeleteClick(lang.id)}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(lang.id)}
+                              disabled={updatingLanguageId === lang.id}
+                              className="h-8 w-8 p-0 text-red-600 transition-all duration-200 hover:bg-red-50 hover:text-red-700"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -416,16 +503,17 @@ export default function GeneralInfoPage() {
                   )}
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="space-y-2">
                       <Label>Idioma</Label>
                       <Select
                         options={commonLanguages}
                         value={commonLanguages.find((opt) => opt.value === newLanguage)}
                         onChange={(selected) => setNewLanguage((selected as any)?.value ?? '')}
                         placeholder="Seleccionar idioma..."
+                        isSearchable={true}
                       />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Nivel de Competencia</Label>
                       <Select
                         options={proficiencyLevels}
@@ -436,29 +524,33 @@ export default function GeneralInfoPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2">
-                    {editingId && (
-                      <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                        Cancelar
-                      </Button>
-                    )}
+                  <div className="flex justify-end">
                     <Button
                       type="button"
-                      onClick={editingId ? handleUpdateLanguage : handleAddLanguage}
+                      onClick={handleAddLanguage}
                       disabled={!newLanguage || !newProficiency || languagesLoading}
+                      className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-2.5 text-white shadow-md transition-all duration-200 hover:scale-105 hover:from-green-700 hover:to-green-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                     >
-                      {editingId ? 'Actualizar Idioma' : 'Agregar Idioma'}
+                      Agregar Idioma
                     </Button>
                   </div>
                 </CardContent>
               </Card>
 
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => router.push('/profile')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/profile')}
+                  className="border-2 px-6 py-2.5 transition-all duration-200 hover:border-slate-300 hover:bg-slate-100"
+                >
                   Volver
                 </Button>
-                <Button type="submit" className="px-6">
-                  Guardar y Continuar
+                <Button
+                  type="submit"
+                  className="transform bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-2.5 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl"
+                >
+                  {hasChanges ? 'Guardar y Continuar' : 'Siguiente'}
                 </Button>
               </div>
             </form>
@@ -475,12 +567,12 @@ export default function GeneralInfoPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 flex justify-end gap-3">
-            <AlertDialogCancel className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50">
+            <AlertDialogCancel className="border-2 px-4 py-2 text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50">
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+              className="bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-red-800 hover:shadow-xl focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
             >
               Eliminar
             </AlertDialogAction>
@@ -488,8 +580,33 @@ export default function GeneralInfoPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Overlay for AlertDialog */}
-      {isDeleteDialogOpen && <div className="fixed inset-0 z-[99] bg-black/50" />}
+      {/* Confirmation Dialog for Incomplete Fields */}
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent className="fixed top-1/2 left-1/2 z-[100] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-white p-6 shadow-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              ¿Continuar sin completar?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="mt-2 text-sm text-gray-600">
+              Te falta completar: {incompleteFieldsList.join(', ')}. ¿Igual quieres continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex justify-end gap-3">
+            <AlertDialogCancel className="border-2 px-4 py-2 text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50">
+              Volver a completar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSubmit}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 hover:shadow-xl focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+            >
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Overlay for AlertDialogs */}
+      {(isDeleteDialogOpen || isConfirmDialogOpen) && <div className="fixed inset-0 z-[99] bg-black/50" />}
     </div>
   );
 }

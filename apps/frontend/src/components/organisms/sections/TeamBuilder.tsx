@@ -327,13 +327,16 @@ export const TeamBuilder = () => {
 
               <div className="flex items-end">
                 <Button onClick={() => setShowWeightsDialog(true)} variant="secondary" className="w-full">
-                  Configurar Criterios de Compatibilidad ({totalWeight}%)
+                  Configurar Criterios de Preferencia ({totalWeight}%)
                 </Button>
               </div>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-6">
-            <h2 className="mb-4 text-lg font-medium text-gray-900">Roles y Niveles Requeridos</h2>
+            <h2 className="mb-4 text-lg font-medium text-gray-900">
+              Especialidades Requeridas
+              <span className="ml-2 text-sm text-gray-500">(Equipos de {teamSize} miembros)</span>
+            </h2>
             <div className="space-y-4">
               {teamRoles.map((roleObj, index) => {
                 const roleOptions = roles.map((r) => ({
@@ -348,7 +351,9 @@ export const TeamBuilder = () => {
                 return (
                   <div
                     key={index}
-                    className={`grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4 ${index < teamRoles.length - 1 ? 'mb-4 border-b border-gray-200 pb-4' : ''}`}
+                    className={`grid grid-cols-1 gap-2 md:grid-cols-3 md:gap-4 ${
+                      index < teamRoles.length - 1 ? 'mb-4 border-b border-gray-200 pb-4' : ''
+                    }`}
                   >
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-gray-500 md:hidden">Rol</label>
@@ -369,13 +374,17 @@ export const TeamBuilder = () => {
                       <label className="text-xs font-medium text-gray-500 md:hidden">Área</label>
                       <Select
                         options={areaOptions}
-                        value={areaOptions.find((opt) => opt.value === roleObj.area)}
+                        isMulti
+                        value={areaOptions.filter((opt) => {
+                          const areas = roleObj.area.split(',').map((a) => a.trim());
+                          return areas.includes(opt.value.toString());
+                        })}
                         onChange={(selected) => {
-                          if (selected && !Array.isArray(selected)) {
-                            updateRoleAtIndex(index, 'area', selected.value.toString());
-                          }
+                          const selectedOptions = Array.isArray(selected) ? selected : selected ? [selected] : [];
+                          const areaString = selectedOptions.map((opt) => opt.value.toString()).join(', ');
+                          updateRoleAtIndex(index, 'area', areaString);
                         }}
-                        placeholder="Seleccionar área..."
+                        placeholder="Seleccionar áreas..."
                       />
                     </div>
 

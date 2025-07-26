@@ -113,7 +113,17 @@ class TeamDatabaseService:
         level_filter = f" AND esr.level = '{level}'" if level is not None else ""
 
         role_filter = f" AND sr.name = '{role}'" if role else ""
-        area_filter = f" AND ta.name = '{area}'" if area else ""
+        
+        # Handle multiple areas separated by commas
+        if area:
+            areas = [area.strip() for area in area.split(",")]
+            area_conditions = [f"ta.name = '{a}'" for a in areas if a]
+            if area_conditions:
+                area_filter = f" AND ({' OR '.join(area_conditions)})"
+            else:
+                area_filter = ""
+        else:
+            area_filter = ""
 
         tech_list = technologies or []
         tech_str = "','".join(tech_list)
@@ -199,9 +209,18 @@ class TeamDatabaseService:
             print(f"DEBUG - Original level: {raw_level}, mapped level: {level_name}")
             
             if req.get("Role") and req.get("Area") and level_name:
-                clause = f"(sr.name = '{req['Role']}' AND ta.name = '{req['Area']}' AND esr.level = '{level_name}')"
-                print(f"DEBUG - Generated clause: {clause}")
-                req_clauses.append(clause)
+                # Handle multiple areas separated by commas
+                areas = [area.strip() for area in req.get("Area", "").split(",")]
+                area_conditions = []
+                for area in areas:
+                    if area:  # Skip empty areas
+                        area_conditions.append(f"ta.name = '{area}'")
+                
+                if area_conditions:
+                    area_clause = " OR ".join(area_conditions)
+                    clause = f"(sr.name = '{req['Role']}' AND ({area_clause}) AND esr.level = '{level_name}')"
+                    print(f"DEBUG - Generated clause: {clause}")
+                    req_clauses.append(clause)
         req_filter = f"AND ({' OR '.join(req_clauses)})" if req_clauses else ""
         print(f"DEBUG - Final req_filter: {req_filter}")
 

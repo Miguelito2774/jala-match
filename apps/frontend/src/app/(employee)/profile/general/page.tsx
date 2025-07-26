@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Select } from '@/components/atoms/inputs/Select';
 import { PageLoader } from '@/components/atoms/loaders/PageLoader';
+import { ImageUploader } from '@/components/molecules/ImageUploader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { useEmployeeLanguages, useEmployeeProfile } from '@/hooks/useEmployeeProfile';
 import { useProfileLoadingState } from '@/hooks/useProfileLoadingState';
 
-import { Camera, Globe, Languages, Trash2, User } from 'lucide-react';
+import { Globe, Languages, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 const countries = [
@@ -111,6 +111,7 @@ export default function GeneralInfoPage() {
   const [country, setCountry] = useState('');
   const [timezone, setTimezone] = useState('');
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
+  const [profilePicturePublicId, setProfilePicturePublicId] = useState('');
 
   // Language form state
   const [newLanguage, setNewLanguage] = useState('');
@@ -173,6 +174,7 @@ export default function GeneralInfoPage() {
       country,
       timezone,
       profilePictureUrl,
+      profilePicturePublicId,
     };
 
     const hasFormChanges = Object.keys(currentValues).some(
@@ -180,7 +182,7 @@ export default function GeneralInfoPage() {
     );
 
     setHasChanges(hasFormChanges);
-  }, [firstName, lastName, country, timezone, profilePictureUrl, originalValues]);
+  }, [firstName, lastName, country, timezone, profilePictureUrl, profilePicturePublicId, originalValues]);
 
   const getInitials = (first: string, last: string) =>
     `${first?.charAt(0) || ''}${last?.charAt(0) || ''}`.toUpperCase();
@@ -333,31 +335,26 @@ export default function GeneralInfoPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-center gap-6">
-                    <div className="relative">
-                      <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
-                        <AvatarImage src={profilePictureUrl} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-semibold text-white">
-                          {getInitials(firstName, lastName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="absolute -right-2 -bottom-2 h-8 w-8 rounded-full bg-white p-0 shadow-sm"
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <ImageUploader
+                      currentImageUrl={profilePictureUrl}
+                      onImageChange={(url, publicId) => {
+                        setProfilePictureUrl(url);
+                        setProfilePicturePublicId(publicId);
+                      }}
+                      onImageRemove={() => {
+                        setProfilePictureUrl('');
+                        setProfilePicturePublicId('');
+                      }}
+                      placeholder={getInitials(firstName, lastName)}
+                      size="lg"
+                    />
                     <div className="flex-1 space-y-2">
-                      <Label htmlFor="profilePicture">URL de Foto de Perfil</Label>
-                      <Input
-                        id="profilePicture"
-                        type="url"
-                        placeholder="https://ejemplo.com/mi-foto.jpg"
-                        value={profilePictureUrl}
-                        onChange={(e) => setProfilePictureUrl(e.target.value)}
-                      />
+                      <Label htmlFor="profilePicture">Foto de Perfil</Label>
+                      <p className="text-sm text-slate-600">
+                        Haga clic en el ícono de la cámara para subir una nueva foto de perfil. Formatos soportados:
+                        JPG, PNG. Tamaño máximo: 5MB.
+                      </p>
+                      {profilePictureUrl && <p className="text-xs text-green-600">✓ Imagen subida correctamente</p>}
                     </div>
                   </div>
 

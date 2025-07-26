@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { Select } from '@/components/atoms/inputs/Select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,6 +29,7 @@ interface TeamMemberRecommendation {
   sfia_level: number;
   compatibility_score: number;
   analysis: string;
+  profilePictureUrl?: string;
 }
 
 interface MemberToAdd {
@@ -346,22 +348,34 @@ export const AddTeamMemberComponent = ({ teamId, onMembersAdded }: AddTeamMember
                     </div>
 
                     <div className="pr-8">
-                      <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-                        <h4 className="font-medium">{member.name}</h4>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{member.role}</Badge>
-                          <Badge variant="secondary">SFIA {member.sfia_level}</Badge>
-                          <Badge
-                            variant={
-                              member.compatibility_score >= 90
-                                ? 'success'
-                                : member.compatibility_score >= 80
-                                  ? 'default'
-                                  : 'outline'
-                            }
-                          >
-                            {member.compatibility_score}%
-                          </Badge>
+                      <div className="mb-2 flex items-center gap-3">
+                        <Avatar className="h-8 w-8 flex-shrink-0">
+                          <AvatarImage src={member.profilePictureUrl || undefined} alt={member.name} />
+                          <AvatarFallback className="bg-blue-500 text-xs font-semibold text-white">
+                            {member.name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-1 flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                          <h4 className="font-medium">{member.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{member.role}</Badge>
+                            <Badge variant="secondary">SFIA {member.sfia_level}</Badge>
+                            <Badge
+                              variant={
+                                member.compatibility_score >= 90
+                                  ? 'success'
+                                  : member.compatibility_score >= 80
+                                    ? 'default'
+                                    : 'outline'
+                              }
+                            >
+                              {member.compatibility_score}%
+                            </Badge>
+                          </div>
                         </div>
                       </div>
 

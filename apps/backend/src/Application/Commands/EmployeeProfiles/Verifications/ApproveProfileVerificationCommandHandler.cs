@@ -6,6 +6,7 @@ using Domain.Entities.Enums;
 using Domain.Entities.Profiles;
 using Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Errors;
 using SharedKernel.Results;
 
@@ -16,13 +17,16 @@ public sealed class ApproveProfileVerificationCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly ILogger<ApproveProfileVerificationCommandHandler> _logger;
 
     public ApproveProfileVerificationCommandHandler(
         IApplicationDbContext context,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        ILogger<ApproveProfileVerificationCommandHandler> logger)
     {
         _context = context;
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<Result<VerificationDecisionResponse>> Handle(
@@ -99,23 +103,28 @@ public sealed class ApproveProfileVerificationCommandHandler
         _context.ProfileVerifications.Add(verification);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Send notification email
-        try
+        // Fire and forget: Send approval notification in background without blocking response
+        _ = Task.Run(async () =>
         {
-            await _notificationService.SendProfileApprovedNotificationAsync(
-                profile.User.Email,
-                $"{profile.FirstName} {profile.LastName}",
-                request.SfiaProposed,
-                request.Notes,
-                cancellationToken
-            );
-        }
-        catch (Exception ex)
-        {
-            // Log the exception but don't fail the operation
-            // TODO: Add proper logging
-            Console.WriteLine($"Failed to send notification email: {ex.Message}");
-        }
+            try
+            {
+                await _notificationService.SendProfileApprovedNotificationAsync(
+                    profile.User.Email,
+                    $"{profile.FirstName} {profile.LastName}",
+                    request.SfiaProposed,
+                    request.Notes,
+                    CancellationToken.None
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending profile approval notification for employee {EmployeeId}",
+                    profile.Id
+                );
+            }
+        }, CancellationToken.None);
 
         var response = new VerificationDecisionResponse
         {

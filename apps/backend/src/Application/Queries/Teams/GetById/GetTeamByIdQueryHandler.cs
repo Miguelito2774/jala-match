@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Application.Abstractions.Messaging;
 using Application.Abstractions.Repositories;
+using Application.Abstractions.Services;
 using Application.DTOs;
 using Domain.Entities.Teams;
 using SharedKernel.Errors;
@@ -11,9 +12,13 @@ namespace Application.Queries.Teams.GetById;
 internal sealed class GetTeamByIdQueryHandler : IQueryHandler<GetTeamByIdQuery, TeamResponse>
 {
     private readonly ITeamRepository _teamRepository;
+    private readonly IImageStorageService _imageStorageService;
 
-    public GetTeamByIdQueryHandler(ITeamRepository teamRepository) =>
+    public GetTeamByIdQueryHandler(ITeamRepository teamRepository, IImageStorageService imageStorageService)
+    {
         _teamRepository = teamRepository;
+        _imageStorageService = imageStorageService;
+    }
 
     public async Task<Result<TeamResponse>> Handle(
         GetTeamByIdQuery query,
@@ -40,7 +45,8 @@ internal sealed class GetTeamByIdQueryHandler : IQueryHandler<GetTeamByIdQuery, 
                     m.Name,
                     m.Role,
                     m.SfiaLevel,
-                    m.IsLeader
+                    m.IsLeader,
+                    _imageStorageService.GenerateImageUrl(m.EmployeeProfile?.User?.ProfilePicturePublicId)
                 ))
                 .ToList(),
             RequiredTechnologies = team

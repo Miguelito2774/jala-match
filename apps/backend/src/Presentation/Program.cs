@@ -11,7 +11,28 @@ using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
+// Load .env file - try multiple locations
+string[] envPaths = new[]
+{
+    Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+    Path.Combine(AppContext.BaseDirectory, ".env"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", ".env"),
+    "/home/miguelito/Desktop/jala-match/apps/backend/.env",
+};
+
+foreach (string envPath in envPaths)
+{
+    if (File.Exists(envPath))
+    {
+        Console.WriteLine($"Loading .env from: {envPath}");
+        Env.Load(envPath);
+        break;
+    }
+    else
+    {
+        Console.WriteLine($".env not found at: {envPath}");
+    }
+}
 
 builder.Services.AddCors(options =>
     options.AddPolicy(

@@ -115,7 +115,7 @@ export const EmployeeTeamCard = ({ team }: EmployeeTeamCardProps) => {
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={leader.profilePictureUrl} alt={leader.fullName} />
+                  <AvatarImage src={leader.profilePictureUrl || undefined} alt={leader.fullName} />
                   <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-orange-500 text-sm font-semibold text-white">
                     {getInitials(leader.firstName, leader.lastName)}
                   </AvatarFallback>
@@ -142,7 +142,7 @@ export const EmployeeTeamCard = ({ team }: EmployeeTeamCardProps) => {
             <div className="flex -space-x-2">
               {visibleTeammates.map((teammate) => (
                 <Avatar key={teammate.employeeProfileId} className="h-8 w-8 border-2 border-white">
-                  <AvatarImage src={teammate.profilePictureUrl} alt={teammate.fullName} />
+                  <AvatarImage src={teammate.profilePictureUrl || undefined} alt={teammate.fullName} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white">
                     {getInitials(teammate.firstName, teammate.lastName)}
                   </AvatarFallback>

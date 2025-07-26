@@ -21,6 +21,7 @@ public class TeamService : ITeamService
     private readonly IEmployeeProfileRepository _employeeProfileRepository;
     private readonly ITechnologyRepository _technologyRepository;
     private readonly INotificationService _notificationService;
+    private readonly IImageStorageService _imageStorageService;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -33,7 +34,8 @@ public class TeamService : ITeamService
         ITeamRepository teamRepository,
         IEmployeeProfileRepository employeeProfileRepository,
         ITechnologyRepository technologyRepository,
-        INotificationService notificationService
+        INotificationService notificationService,
+        IImageStorageService imageStorageService
     )
     {
         _httpClient = httpClientFactory.CreateClient("AIService");
@@ -42,6 +44,7 @@ public class TeamService : ITeamService
         _employeeProfileRepository = employeeProfileRepository;
         _technologyRepository = technologyRepository;
         _notificationService = notificationService;
+        _imageStorageService = imageStorageService;
     }
 
     public async Task<Result<AiServiceResponse>> GenerateTeams(
@@ -152,6 +155,54 @@ public class TeamService : ITeamService
                             ErrorType.Failure
                         )
                     );
+                }
+
+                // Enrich recommended_members with profile pictures
+                if (aiResponse.recommended_members?.Any() == true)
+                {
+                    _logger.LogInformation(
+                        "Enriching {Count} recommended members with profile pictures",
+                        aiResponse.recommended_members.Count
+                    );
+
+                    foreach (
+                        AiRecommendedMember recommendedMember in aiResponse.recommended_members
+                    )
+                    {
+                        try
+                        {
+                            EmployeeProfile? employeeProfile =
+                                await _employeeProfileRepository.GetByIdAsync(recommendedMember.Id);
+                            if (employeeProfile?.User?.ProfilePicturePublicId != null)
+                            {
+                                recommendedMember.ProfilePictureUrl =
+                                    _imageStorageService.GenerateImageUrl(
+                                        employeeProfile.User.ProfilePicturePublicId
+                                    );
+                                _logger.LogDebug(
+                                    "Generated profile picture URL for recommended member {MemberId}: {Url}",
+                                    recommendedMember.Id,
+                                    recommendedMember.ProfilePictureUrl
+                                );
+                            }
+                            else
+                            {
+                                _logger.LogDebug(
+                                    "No profile picture found for recommended member {MemberId}",
+                                    recommendedMember.Id
+                                );
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "Failed to enrich profile picture for recommended member {MemberId}",
+                                recommendedMember.Id
+                            );
+                            // Continue with other members even if one fails
+                        }
+                    }
                 }
 
                 return aiResponse;
@@ -275,38 +326,50 @@ public class TeamService : ITeamService
             await _teamRepository.AddAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            try
-            {
-                EmployeeProfile? creatorProfile = await _employeeProfileRepository.GetByIdAsync(command.CreatorId);
-                string managerEmail = creatorProfile?.User?.Email ?? "No disponible";
-
-                foreach (TeamMember member in team.Members)
+            // Fire and forget: Send notifications in background without blocking response
+            _ = Task.Run(
+                async () =>
                 {
-                    EmployeeProfile? memberProfile = await _employeeProfileRepository.GetByIdAsync(member.EmployeeProfileId);
-                    
-                    if (memberProfile?.User?.Email != null)
+                    try
                     {
-                        string memberName = $"{memberProfile.FirstName} {memberProfile.LastName}";
-                        
-                        await _notificationService.SendTeamMemberAddedNotificationAsync(
-                            memberProfile.User.Email,
-                            memberName,
-                            team.Name,
-                            managerEmail,
-                            cancellationToken
-                        );
+                        EmployeeProfile? creatorProfile =
+                            await _employeeProfileRepository.GetByIdAsync(command.CreatorId);
+                        string managerEmail = creatorProfile?.User?.Email ?? "No disponible";
+
+                        foreach (TeamMember member in team.Members)
+                        {
+                            EmployeeProfile? memberProfile =
+                                await _employeeProfileRepository.GetByIdAsync(
+                                    member.EmployeeProfileId
+                                );
+
+                            if (memberProfile?.User?.Email != null)
+                            {
+                                string memberName =
+                                    $"{memberProfile.FirstName} {memberProfile.LastName}";
+
+                                await _notificationService.SendTeamMemberAddedNotificationAsync(
+                                    memberProfile.User.Email,
+                                    memberName,
+                                    team.Name,
+                                    managerEmail,
+                                    CancellationToken.None // Use CancellationToken.None for background task
+                                );
+                            }
+                        }
                     }
-                }
-            }
-            catch (Exception notificationEx)
-            {
-                _logger.LogError(
-                    notificationEx,
-                    "Error sending team creation notifications for team {TeamId}",
-                    team.Id
-                );
-                // Don't fail team creation if notifications fail
-            }
+                    catch (Exception notificationEx)
+                    {
+                        _logger.LogError(
+                            notificationEx,
+                            "Error sending team creation notifications for team {TeamId}",
+                            team.Id
+                        );
+                        // Don't fail team creation if notifications fail
+                    }
+                },
+                CancellationToken.None
+            );
 
             return new TeamResponse
             {
@@ -320,7 +383,10 @@ public class TeamService : ITeamService
                         m.Name,
                         m.Role,
                         m.SfiaLevel,
-                        m.IsLeader
+                        m.IsLeader,
+                        _imageStorageService.GenerateImageUrl(
+                            m.EmployeeProfile?.User?.ProfilePicturePublicId
+                        )
                     ))
                     .ToList(),
                 RequiredTechnologies = command.RequiredTechnologies,
@@ -446,6 +512,23 @@ public class TeamService : ITeamService
                     );
                 }
 
+                // Enrich recommendations with profile picture URLs
+                foreach (TeamMemberRecommendation recommendation in recommendations)
+                {
+                    EmployeeProfile? employeeProfile =
+                        await _employeeProfileRepository.GetByIdWithUserAsync(
+                            recommendation.EmployeeId,
+                            cancellationToken
+                        );
+
+                    if (employeeProfile?.User != null)
+                    {
+                        recommendation.ProfilePictureUrl = _imageStorageService.GenerateImageUrl(
+                            employeeProfile.User.ProfilePicturePublicId
+                        );
+                    }
+                }
+
                 return recommendations;
             }
             catch (JsonException jsonEx)
@@ -546,43 +629,50 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Send notifications for team member additions - only for actually new members
-            try
-            {
-                foreach (TeamMemberDto memberDto in request.Members)
+            // Fire and forget: Send notifications for team member additions in background
+            _ = Task.Run(
+                async () =>
                 {
-                    // Only process notifications for actually new members
-                    if (!newMemberIds.Contains(memberDto.EmployeeProfileId))
+                    try
                     {
-                        continue;
+                        foreach (TeamMemberDto memberDto in request.Members)
+                        {
+                            // Only process notifications for actually new members
+                            if (!newMemberIds.Contains(memberDto.EmployeeProfileId))
+                            {
+                                continue;
+                            }
+
+                            EmployeeProfile? profile =
+                                await _employeeProfileRepository.GetByIdAsync(
+                                    memberDto.EmployeeProfileId
+                                );
+
+                            if (profile?.User.Email != null)
+                            {
+                                // Send notification to the new member
+                                await _notificationService.SendTeamMemberAddedNotificationAsync(
+                                    profile.User.Email,
+                                    $"{profile.FirstName} {profile.LastName}",
+                                    team.Name,
+                                    team.Creator?.Email ?? "manager@jalamatch.com",
+                                    CancellationToken.None
+                                );
+                            }
+                        }
                     }
-
-                    EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                        memberDto.EmployeeProfileId
-                    );
-
-                    if (profile?.User.Email != null)
+                    catch (Exception ex)
                     {
-                        // Send notification to the new member
-                        await _notificationService.SendTeamMemberAddedNotificationAsync(
-                            profile.User.Email,
-                            $"{profile.FirstName} {profile.LastName}",
-                            team.Name,
-                            team.Creator?.Email ?? "manager@jalamatch.com",
-                            cancellationToken
+                        _logger.LogError(
+                            ex,
+                            "Error sending team member addition notifications for team {TeamId}",
+                            team.Id
                         );
+                        // Don't fail the operation just because notifications failed
                     }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error sending team member addition notifications for team {TeamId}",
-                    team.Id
-                );
-                // Don't fail the operation just because notifications failed
-            }
+                },
+                CancellationToken.None
+            );
 
             // Update availability for new members only
             foreach (Guid newMemberId in newMemberIds)
@@ -609,7 +699,10 @@ public class TeamService : ITeamService
                             m.Name,
                             m.Role,
                             m.SfiaLevel,
-                            m.IsLeader
+                            m.IsLeader,
+                            _imageStorageService.GenerateImageUrl(
+                                m.EmployeeProfile?.User?.ProfilePicturePublicId
+                            )
                         ))
                         .ToList(),
                     RequiredTechnologies = team
@@ -690,34 +783,39 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Send notifications for team member removal
-            try
-            {
-                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                    request.EmployeeProfileId
-                );
-
-                if (profile?.User.Email != null)
+            // Fire and forget: Send notifications for team member removal in background
+            _ = Task.Run(
+                async () =>
                 {
-                    // Send notification to the removed member
-                    await _notificationService.SendTeamMemberRemovedNotificationAsync(
-                        profile.User.Email,
-                        $"{profile.FirstName} {profile.LastName}",
-                        team.Name,
-                        team.Creator?.Email ?? "manager@jalamatch.com",
-                        cancellationToken
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error sending team member removal notifications for team {TeamId}",
-                    team.Id
-                );
-                // Don't fail the operation just because notifications failed
-            }
+                    try
+                    {
+                        EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                            request.EmployeeProfileId
+                        );
+
+                        if (profile?.User.Email != null)
+                        {
+                            // Send notification to the removed member
+                            await _notificationService.SendTeamMemberRemovedNotificationAsync(
+                                profile.User.Email,
+                                $"{profile.FirstName} {profile.LastName}",
+                                team.Name,
+                                team.Creator?.Email ?? "manager@jalamatch.com",
+                                CancellationToken.None
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            ex,
+                            "Error sending team member removal notification for team {TeamId}",
+                            team.Id
+                        );
+                    }
+                },
+                CancellationToken.None
+            );
 
             return BuildTeamResponse(team);
         }
@@ -828,36 +926,41 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(targetTeam, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Send notifications for team member move
-            try
-            {
-                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                    request.EmployeeProfileId
-                );
-
-                if (profile?.User.Email != null)
+            // Fire and forget: Send notifications for team member move in background
+            _ = Task.Run(
+                async () =>
                 {
-                    // Send notification to the moved member
-                    await _notificationService.SendTeamMemberMovedNotificationAsync(
-                        profile.User.Email,
-                        $"{profile.FirstName} {profile.LastName}",
-                        sourceTeam.Name,
-                        targetTeam.Name,
-                        targetTeam.Creator?.Email ?? "manager@jalamatch.com",
-                        cancellationToken
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Error sending team member move notifications for teams {SourceTeamId} -> {TargetTeamId}",
-                    sourceTeam.Id,
-                    targetTeam.Id
-                );
-                // Don't fail the operation just because notifications failed
-            }
+                    try
+                    {
+                        EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
+                            request.EmployeeProfileId
+                        );
+
+                        if (profile?.User.Email != null)
+                        {
+                            // Send notification to the moved member
+                            await _notificationService.SendTeamMemberMovedNotificationAsync(
+                                profile.User.Email,
+                                $"{profile.FirstName} {profile.LastName}",
+                                sourceTeam.Name,
+                                targetTeam.Name,
+                                targetTeam.Creator?.Email ?? "manager@jalamatch.com",
+                                CancellationToken.None
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            ex,
+                            "Error sending team member move notifications for teams {SourceTeamId} -> {TargetTeamId}",
+                            sourceTeam.Id,
+                            targetTeam.Id
+                        );
+                    }
+                },
+                CancellationToken.None
+            );
 
             Result<TeamResponse> sourceTeamResponse = BuildTeamResponse(sourceTeam);
             Result<TeamResponse> targetTeamResponse = BuildTeamResponse(targetTeam);
@@ -892,7 +995,10 @@ public class TeamService : ITeamService
                         m.Name,
                         m.Role,
                         m.SfiaLevel,
-                        m.IsLeader
+                        m.IsLeader,
+                        _imageStorageService.GenerateImageUrl(
+                            m.EmployeeProfile?.User?.ProfilePicturePublicId
+                        )
                     ))
                     .ToList(),
                 RequiredTechnologies = team

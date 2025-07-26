@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { PageLoader } from '@/components/atoms/loaders/PageLoader';
 import { ProtectedRoute } from '@/components/organisms/sidebar/ProtectedRoute';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,74 +108,77 @@ export default function ProfileVerificationsPage() {
           ) : (
             <>
               <div className="grid gap-6">
-                {data?.pendingVerifications.map(
-                  (verification: {
-                    employeeProfileId: string;
-                    employeeName: string;
-                    employeeEmail: string;
-                    country: string;
-                    timezone: string;
-                    sfiaLevelGeneral: number;
-                    yearsExperienceTotal: number;
-                    requestedAt: string;
-                    specializedRoles: string[];
-                  }) => (
-                    <Card key={verification.employeeProfileId} className="transition-shadow hover:shadow-lg">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
+                {data?.pendingVerifications.map((verification) => (
+                  <Card key={verification.employeeProfileId} className="transition-shadow hover:shadow-lg">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage
+                              src={verification.profilePictureUrl || undefined}
+                              alt={verification.employeeName}
+                            />
+                            <AvatarFallback className="bg-blue-500 text-sm font-semibold text-white">
+                              {verification.employeeName
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <div>
                             <CardTitle className="text-xl">{verification.employeeName}</CardTitle>
                             <CardDescription className="mt-1 flex items-center gap-2">
                               <span>{verification.employeeEmail}</span>
                             </CardDescription>
                           </div>
-                          <Link href={`/profile-verifications/${verification.employeeProfileId}`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-2">
-                              <Eye className="h-4 w-4" />
-                              Ver Detalles
-                            </Button>
-                          </Link>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">
-                              {verification.country} ({verification.timezone})
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">SFIA {verification.sfiaLevelGeneral}</Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">{verification.yearsExperienceTotal} años de experiencia</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm">
-                              {new Date(verification.requestedAt).toLocaleDateString('es-ES')}
-                            </span>
-                          </div>
+                        <Link href={`/profile-verifications/${verification.employeeProfileId}`}>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Ver Detalles
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">
+                            {verification.country} ({verification.timezone})
+                          </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">SFIA {verification.sfiaLevelGeneral}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">{verification.yearsExperienceTotal} años de experiencia</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">
+                            {new Date(verification.requestedAt).toLocaleDateString('es-ES')}
+                          </span>
+                        </div>
+                      </div>
 
-                        {verification.specializedRoles.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="mb-2 text-sm font-medium text-gray-700">Roles especializados:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {verification.specializedRoles.map((role, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {role}
-                                </Badge>
-                              ))}
-                            </div>
+                      {verification.specializedRoles.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="mb-2 text-sm font-medium text-gray-700">Roles especializados:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {verification.specializedRoles.map((role, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {role}
+                              </Badge>
+                            ))}
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ),
-                )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
               {/* Paginación */}

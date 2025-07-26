@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -116,7 +117,12 @@ export const Sidebar = () => {
           <div className="border-b border-gray-200 px-4 py-3">
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
-                <UserCircle className="h-8 w-8 text-gray-400" />
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profilePictureUrl || undefined} alt={user.email} />
+                  <AvatarFallback className="bg-blue-500 text-sm font-semibold text-white">
+                    {user.email.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-gray-900">{user.email}</p>

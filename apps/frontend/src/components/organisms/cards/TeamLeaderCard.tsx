@@ -71,7 +71,7 @@ export const TeamLeaderCard: React.FC<TeamLeaderCardProps> = ({ leader }) => {
       <CardContent className="space-y-4">
         <div className="flex items-start gap-4">
           <Avatar className="h-16 w-16 ring-2 ring-yellow-300">
-            <AvatarImage src={leader.profilePictureUrl} alt={leader.fullName} />
+            <AvatarImage src={leader.profilePictureUrl || undefined} alt={leader.fullName} />
             <AvatarFallback className="bg-yellow-200 font-semibold text-yellow-800">
               {getInitials(leader.fullName)}
             </AvatarFallback>

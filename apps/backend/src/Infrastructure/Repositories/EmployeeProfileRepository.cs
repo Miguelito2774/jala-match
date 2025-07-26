@@ -17,12 +17,20 @@ public class EmployeeProfileRepository : IEmployeeProfileRepository
     public async Task<EmployeeProfile?> GetByIdAsync(Guid id)
     {
         return await _context
-            .EmployeeProfiles.Include(p => p.User) // Include User to load email information
+            .EmployeeProfiles.Include(p => p.User) 
             .Include(p => p.Technologies)
             .Include(p => p.Languages)
             .Include(p => p.WorkExperiences)
             .Include(p => p.TeamMemberships)
             .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<EmployeeProfile?> GetByIdWithUserAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context
+            .EmployeeProfiles
+            .Include(p => p.User)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public async Task AddAsync(EmployeeProfile profile)
@@ -45,7 +53,7 @@ public class EmployeeProfileRepository : IEmployeeProfileRepository
     public async Task<List<EmployeeProfile>> GetAvailableProfilesAsync()
     {
         return await _context
-            .EmployeeProfiles.Include(p => p.User) // Include User to load email information
+            .EmployeeProfiles.Include(p => p.User) 
             .Where(p => p.Availability)
             .ToListAsync();
     }

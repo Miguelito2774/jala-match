@@ -426,7 +426,7 @@ export const TeamBuilder = () => {
       <Dialog open={showWeightsDialog} onOpenChange={setShowWeightsDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Configurar Criterios de Compatibilidad</DialogTitle>
+            <DialogTitle>Configurar Criterios de Preferencia</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             {criteria.map((criterion, index) => (

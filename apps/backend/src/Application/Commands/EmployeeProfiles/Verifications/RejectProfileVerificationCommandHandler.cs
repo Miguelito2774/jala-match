@@ -6,6 +6,7 @@ using Domain.Entities.Enums;
 using Domain.Entities.Profiles;
 using Domain.Entities.Users;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Errors;
 using SharedKernel.Results;
 
@@ -16,14 +17,17 @@ public sealed class RejectProfileVerificationCommandHandler
 {
     private readonly IApplicationDbContext _context;
     private readonly INotificationService _notificationService;
+    private readonly ILogger<RejectProfileVerificationCommandHandler> _logger;
 
     public RejectProfileVerificationCommandHandler(
         IApplicationDbContext context,
-        INotificationService notificationService
+        INotificationService notificationService,
+        ILogger<RejectProfileVerificationCommandHandler> logger
     )
     {
         _context = context;
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<Result<VerificationDecisionResponse>> Handle(
@@ -95,22 +99,27 @@ public sealed class RejectProfileVerificationCommandHandler
         _context.ProfileVerifications.Add(verification);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Send notification email
-        try
+        // Fire and forget: Send rejection notification in background without blocking response
+        _ = Task.Run(async () =>
         {
-            await _notificationService.SendProfileRejectedNotificationAsync(
-                profile.User.Email,
-                $"{profile.FirstName} {profile.LastName}",
-                request.Notes,
-                cancellationToken
-            );
-        }
-        catch (Exception ex)
-        {
-            // Log the exception but don't fail the operation
-            // TODO: Add proper logging
-            Console.WriteLine($"Failed to send notification email: {ex.Message}");
-        }
+            try
+            {
+                await _notificationService.SendProfileRejectedNotificationAsync(
+                    profile.User.Email,
+                    $"{profile.FirstName} {profile.LastName}",
+                    request.Notes ?? "No se proporcionaron notas adicionales",
+                    CancellationToken.None
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending profile rejection notification for employee {EmployeeId}",
+                    profile.Id
+                );
+            }
+        }, CancellationToken.None);
 
         var response = new VerificationDecisionResponse
         {

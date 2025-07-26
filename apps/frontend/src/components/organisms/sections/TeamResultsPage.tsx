@@ -5,10 +5,12 @@ import { useState } from 'react';
 import { adaptGeneratedTeamToAITeamResponse } from '@/app/utils/adapters';
 import { Button } from '@/components/atoms/buttons/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProfileImages } from '@/hooks/useProfileImages';
 import { GeneratedTeamResponse } from '@/hooks/useTeamGenerator';
 import { TeamWeights, useTeams } from '@/hooks/useTeams';
 
@@ -53,6 +55,10 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
   const [leaderRationales, setLeaderRationales] = useState<Record<string, string>>({
     [teamData.recommended_Leader.id]: teamData.recommended_Leader.rationale,
   });
+
+  // Hook to fetch profile images for all team members
+  const memberIds = currentTeamMembers.map((member) => member.id);
+  const { getProfileImage } = useProfileImages(memberIds);
 
   const analysis = teamData.team_Analysis;
   const score = teamData.compatibility_Score;
@@ -277,15 +283,17 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
             )}
 
             <div className="flex items-center gap-3">
-              <div
-                className={`relative flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-xl font-bold ${
-                  isLeader(member.id) ? 'ring-4 ring-yellow-200' : ''
-                }`}
-              >
-                {member.name
-                  .split(' ')
-                  .map((word) => word[0])
-                  .join('')}
+              <div className={`relative ${isLeader(member.id) ? 'rounded-full ring-4 ring-yellow-200' : ''}`}>
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src={getProfileImage(member.id) || undefined} alt={member.name} />
+                  <AvatarFallback className="bg-gray-100 text-xl font-bold">
+                    {member.name
+                      .split(' ')
+                      .map((word) => word[0])
+                      .join('')
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </div>
 
               <div>

@@ -13,6 +13,7 @@ public sealed class User : Entity
     public required string PasswordHash { get; set; }
     public required Role Role { get; set; }
     public required Uri? ProfilePictureUrl { get; set; }
+    public string? ProfilePicturePublicId { get; set; }
 
     // Navigation properties
     public EmployeeProfile? EmployeeProfile { get; set; }

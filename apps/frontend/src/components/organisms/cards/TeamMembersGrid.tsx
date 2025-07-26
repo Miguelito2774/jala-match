@@ -85,7 +85,7 @@ export const TeamMembersGrid: React.FC<TeamMembersGridProps> = ({ members, curre
                   <div className="flex items-start gap-3">
                     <div className="relative">
                       <Avatar className="h-12 w-12 ring-2 ring-gray-200">
-                        <AvatarImage src={member.profilePictureUrl} alt={member.fullName} />
+                        <AvatarImage src={member.profilePictureUrl || undefined} alt={member.fullName} />
                         <AvatarFallback className="font-semibold">{getInitials(member.fullName)}</AvatarFallback>
                       </Avatar>
                     </div>

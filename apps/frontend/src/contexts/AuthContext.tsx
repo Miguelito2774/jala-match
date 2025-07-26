@@ -8,6 +8,7 @@ export interface User {
   role: 'Employee' | 'Manager' | 'Admin';
   hasProfile: boolean;
   isProfileVerified: boolean;
+  profilePictureUrl?: string;
 }
 
 interface AuthResponse {

@@ -4,6 +4,7 @@
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
         <PackageReference Include="AspNetCore.HealthChecks.Redis" />
         <PackageReference Include="BCrypt.Net-Next" />
+        <PackageReference Include="CloudinaryDotNet" />
         <PackageReference Include="FluentEmail.Core" />
         <PackageReference Include="FluentEmail.Smtp" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

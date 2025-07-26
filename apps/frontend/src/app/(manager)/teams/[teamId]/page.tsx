@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -273,6 +273,7 @@ export default function TeamPage({ params }: TeamPageProps) {
                 >
                   <div className="relative mr-4">
                     <Avatar className={`h-12 w-12 ${member.isLeader ? 'border-2 border-yellow-400' : ''}`}>
+                      <AvatarImage src={member.profilePictureUrl || undefined} alt={member.name} />
                       <AvatarFallback
                         className={`${member.isLeader ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-700'}`}
                       >

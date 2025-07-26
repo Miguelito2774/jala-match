@@ -64,7 +64,7 @@ export const TeammateCard = ({ teammate }: TeammateCardProps) => {
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={teammate.profilePictureUrl} alt={teammate.fullName} />
+                <AvatarImage src={teammate.profilePictureUrl || undefined} alt={teammate.fullName} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 font-semibold text-white">
                   {getInitials(teammate.firstName, teammate.lastName)}
                 </AvatarFallback>

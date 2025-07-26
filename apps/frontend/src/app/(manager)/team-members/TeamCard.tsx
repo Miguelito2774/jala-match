@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -106,6 +106,7 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
                 >
                   <div className="relative">
                     <Avatar className={`h-8 w-8 ${member.isLeader ? 'border-2 border-yellow-400' : ''}`}>
+                      <AvatarImage src={member.profilePictureUrl || undefined} alt={member.name} />
                       <AvatarFallback className="bg-blue-100 text-xs text-blue-700">
                         {getInitials(member.name)}
                       </AvatarFallback>

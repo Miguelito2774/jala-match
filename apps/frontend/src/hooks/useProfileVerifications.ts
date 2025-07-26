@@ -13,6 +13,7 @@ export interface PendingVerificationDto {
   sfiaLevelGeneral: number;
   specializedRoles: string[];
   yearsExperienceTotal: number;
+  profilePictureUrl?: string;
 }
 
 export interface PendingVerificationsResponse {
@@ -36,6 +37,7 @@ export interface ProfileForVerificationDto {
   technologies: TechnologyForVerificationDto[];
   totalYearsExperience: number;
   totalProjects: number;
+  profilePictureUrl?: string;
 }
 
 export interface SpecializedRoleForVerificationDto {

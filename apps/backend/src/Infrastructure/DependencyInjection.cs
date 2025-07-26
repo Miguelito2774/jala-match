@@ -10,6 +10,7 @@ using Infrastructure.Authentication;
 using Infrastructure.Database;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
+using Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +59,12 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+        services.AddScoped<IImageStorageService, ImageStorageService>();
+
+        // Background notification service
+        services.AddSingleton<IBackgroundNotificationQueue, BackgroundNotificationService>();
+        services.AddHostedService<BackgroundNotificationService>(provider => 
+            (BackgroundNotificationService)provider.GetRequiredService<IBackgroundNotificationQueue>());
 
         services.AddHttpClient(
             "AIService",
@@ -67,6 +74,49 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromMinutes(5);
             }
         );
+
+        // Configurar Cloudinary igual que Email - primero variables de entorno, luego appsettings
+        string cloudinaryCloudName =
+            Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME")
+            ?? configuration["Cloudinary:CloudName"];
+        string cloudinaryApiKey =
+            Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY")
+            ?? configuration["Cloudinary:ApiKey"];
+        string cloudinaryApiSecret =
+            Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET")
+            ?? configuration["Cloudinary:ApiSecret"];
+
+        // Solo configurar si tenemos las credenciales necesarias
+        if (!string.IsNullOrEmpty(cloudinaryCloudName)
+            && !string.IsNullOrEmpty(cloudinaryApiKey)
+            && !string.IsNullOrEmpty(cloudinaryApiSecret)
+            && !cloudinaryCloudName.StartsWith("${", StringComparison.Ordinal)
+            && !cloudinaryApiKey.StartsWith("${", StringComparison.Ordinal)
+            && !cloudinaryApiSecret.StartsWith("${", StringComparison.Ordinal))
+        {
+            services
+                .AddOptions<CloudinarySettings>()
+                .Configure(opts =>
+                {
+                    opts.CloudName = cloudinaryCloudName;
+                    opts.ApiKey = cloudinaryApiKey;
+                    opts.ApiSecret = cloudinaryApiSecret;
+                })
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+        }
+        else
+        {
+            // Configurar con valores vacíos si no están disponibles (para desarrollo)
+            services
+                .AddOptions<CloudinarySettings>()
+                .Configure(opts =>
+                {
+                    opts.CloudName = string.Empty;
+                    opts.ApiKey = string.Empty;
+                    opts.ApiSecret = string.Empty;
+                });
+        }
 
         return services;
     }

@@ -16,5 +16,7 @@ internal sealed class UserConfiguration : EntityConfiguration<User>
         
         builder.Property(u => u.ProfilePictureUrl).HasMaxLength(512);
         
+        builder.Property(u => u.ProfilePicturePublicId).HasMaxLength(255);
+        
     }
 }

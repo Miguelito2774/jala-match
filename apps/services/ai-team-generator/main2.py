@@ -282,8 +282,9 @@ async def generate_teams(request: TeamGenerationRequest):
         - NO hagas explicaciones cortas y aburridas
         - NO ignores los pesos que me dieron
         - NO uses jerga técnica sin explicar
+        - No duplicar miembros recomendados: Los candidatos en "recommended_Members" NO PUEDEN ser los mismos que están en el equipo principal
 
-        ## � REGLA CRÍTICA PARA EL LÍDER:
+        ## 🎯 REGLA CRÍTICA PARA EL LÍDER:
         El "recommended_leader" DEBE ser uno de los miembros que incluiste en el equipo.
         NO inventes un líder nuevo. NO uses IDs que no estén en la lista de miembros del equipo.
         Selecciona al MEJOR líder de entre los miembros del equipo que ya formaste.

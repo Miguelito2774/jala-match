@@ -8,6 +8,7 @@ export interface TeamMember {
   role: string;
   sfiaLevel: number;
   isLeader: boolean;
+  profilePictureUrl?: string;
 }
 
 export interface TeamAnalysis {

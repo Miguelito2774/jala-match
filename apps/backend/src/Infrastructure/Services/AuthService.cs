@@ -11,6 +11,7 @@ using Domain.Entities.Profiles;
 using Domain.Entities.Users;
 using Infrastructure.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SharedKernel.Errors;
@@ -23,16 +24,19 @@ public sealed class AuthService : IAuthService
     private readonly IApplicationDbContext _context;
     private readonly JwtSettings _jwtSettings;
     private readonly INotificationService _notificationService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IApplicationDbContext context,
         IOptions<JwtSettings> jwtSettings,
-        INotificationService notificationService
+        INotificationService notificationService,
+        ILogger<AuthService> logger
     )
     {
         _context = context;
         _jwtSettings = jwtSettings.Value;
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     public async Task<Result<AuthResponse>> LoginAsync(
@@ -116,7 +120,7 @@ public sealed class AuthService : IAuthService
             TeamMatchingAnalysis = true,
             CreatedAt = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
-            Version = "1.0"
+            Version = "1.0",
         };
 
         _context.Users.Add(user);
@@ -196,7 +200,7 @@ public sealed class AuthService : IAuthService
             TeamMatchingAnalysis = false, // Managers typically don't participate in team matching
             CreatedAt = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
-            Version = "1.0"
+            Version = "1.0",
         };
 
         invitation.IsUsed = true;
@@ -256,12 +260,26 @@ public sealed class AuthService : IAuthService
 
         string invitationLink = $"http://localhost:3000/register?token={invitationToken}";
 
-        await _notificationService.SendInvitationNotificationAsync(
-            email,
-            email.Split('@')[0],
-            invitationLink,
-            admin.Email,
-            cancellationToken
+        // Fire and forget: Send invitation email in background without blocking response
+        _ = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await _notificationService.SendInvitationNotificationAsync(
+                        email,
+                        email.Split('@')[0],
+                        invitationLink,
+                        admin.Email,
+                        CancellationToken.None
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error sending invitation notification to {Email}", email);
+                }
+            },
+            CancellationToken.None
         );
 
         return invitationToken;
@@ -316,11 +334,13 @@ public sealed class AuthService : IAuthService
         );
 
         return invitation != null
-            ? Result.Success(new InvitationValidationResponse 
-            { 
-                IsValid = true, 
-                TargetRole = invitation.TargetRole 
-            })
+            ? Result.Success(
+                new InvitationValidationResponse
+                {
+                    IsValid = true,
+                    TargetRole = invitation.TargetRole,
+                }
+            )
             : Result.Failure<InvitationValidationResponse>(
                 new Error(
                     "Auth.InvalidInvitation",
@@ -366,12 +386,29 @@ public sealed class AuthService : IAuthService
         // Generate reset link
         string resetLink = $"http://localhost:3000/reset-password?token={resetToken}";
 
-        // Send password reset email
-        await _notificationService.SendPasswordResetNotificationAsync(
-            user.Email,
-            user.Email.Split('@')[0], // Use part before @ as name
-            resetLink,
-            cancellationToken
+        // Fire and forget: Send password reset email in background without blocking response
+        _ = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await _notificationService.SendPasswordResetNotificationAsync(
+                        user.Email,
+                        user.Email.Split('@')[0], // Use part before @ as name
+                        resetLink,
+                        CancellationToken.None
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Error sending password reset notification to {Email}",
+                        user.Email
+                    );
+                }
+            },
+            CancellationToken.None
         );
 
         return Result.Success(true);

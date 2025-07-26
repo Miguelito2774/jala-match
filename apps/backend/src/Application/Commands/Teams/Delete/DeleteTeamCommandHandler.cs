@@ -28,7 +28,7 @@ internal sealed class DeleteTeamCommandHandler : ICommandHandler<DeleteTeamComma
         _logger = logger;
     }
 
-    public async Task<Result> Handle(DeleteTeamCommand command, CancellationToken cancellationToken)
+        public async Task<Result> Handle(DeleteTeamCommand command, CancellationToken cancellationToken)
     {
         Team? team = await _teamRepository.GetByIdAsync(command.TeamId, cancellationToken);
         if (team == null)
@@ -38,48 +38,56 @@ internal sealed class DeleteTeamCommandHandler : ICommandHandler<DeleteTeamComma
             );
         }
 
-        // Send notifications before deleting the team
-        try
+        // Collect member data before deletion for background notifications
+        var memberNotificationData = new List<(string Email, string Name)>();
+        
+        foreach (TeamMember member in team.Members)
         {
-            var memberEmails = new List<string>();
-            var memberNames = new List<string>();
+            Domain.Entities.Profiles.EmployeeProfile? profile =
+                await _employeeProfileRepository.GetByIdAsync(member.EmployeeProfileId);
 
-            foreach (TeamMember member in team.Members)
+            if (profile?.User.Email != null)
             {
-                Domain.Entities.Profiles.EmployeeProfile? profile =
-                    await _employeeProfileRepository.GetByIdAsync(member.EmployeeProfileId);
-
-                if (profile?.User.Email != null)
-                {
-                    memberEmails.Add(profile.User.Email);
-                    memberNames.Add($"{profile.FirstName} {profile.LastName}");
-                }
-            }
-
-            if (memberEmails.Count > 0)
-            {
-                string managerEmail = team.Creator?.Email ?? "No disponible";
-
-                await _notificationService.SendTeamDeletedNotificationAsync(
-                    memberEmails,
-                    memberNames,
-                    team.Name,
-                    managerEmail,
-                    cancellationToken
-                );
+                memberNotificationData.Add((profile.User.Email, $"{profile.FirstName} {profile.LastName}"));
             }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Error sending team deletion notifications for team {TeamId}",
-                team.Id
-            );
-        }
 
+        string teamName = team.Name;
+        string managerEmail = team.Creator?.Email ?? "No disponible";
+
+        // Delete the team first (fast response)
         await _teamRepository.DeleteAsync(team, cancellationToken);
         await _teamRepository.SaveChangesAsync(cancellationToken);
+
+        // Fire and forget: Send notifications in background without blocking response
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (memberNotificationData.Count > 0)
+                {
+                    var memberEmails = memberNotificationData.Select(m => m.Email).ToList();
+                    var memberNames = memberNotificationData.Select(m => m.Name).ToList();
+
+                    await _notificationService.SendTeamDeletedNotificationAsync(
+                        memberEmails,
+                        memberNames,
+                        teamName,
+                        managerEmail,
+                        CancellationToken.None
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Error sending team deletion notifications for team {TeamName}",
+                    teamName
+                );
+                // Don't fail the operation just because notifications failed
+            }
+        }, CancellationToken.None);
 
         return Result.Success();
     }

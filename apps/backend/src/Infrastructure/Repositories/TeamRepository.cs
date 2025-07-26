@@ -35,6 +35,8 @@ public class TeamRepository : ITeamRepository
         return await _context
             .Teams
             .Include(t => t.Members)
+                .ThenInclude(m => m.EmployeeProfile!)
+                    .ThenInclude(ep => ep.User)
             .Include(t => t.Creator)
                 .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)
@@ -53,6 +55,8 @@ public class TeamRepository : ITeamRepository
         return await _context
             .Teams
             .Include(t => t.Members)
+                .ThenInclude(m => m.EmployeeProfile!)
+                    .ThenInclude(ep => ep.User)
             .Include(t => t.Creator)
                 .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)
@@ -66,6 +70,8 @@ public class TeamRepository : ITeamRepository
             .Teams
             .Where(t => t.CreatorId == creatorId)
             .Include(t => t.Members)
+                .ThenInclude(m => m.EmployeeProfile!)
+                    .ThenInclude(ep => ep.User)
             .Include(t => t.Creator)
                 .ThenInclude(c => c.EmployeeProfile) // Include creator's employee profile for name
             .Include(t => t.RequiredTechnologies)

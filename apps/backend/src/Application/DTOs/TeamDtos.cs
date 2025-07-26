@@ -95,6 +95,7 @@ public class AiRecommendedMember
     public string Analysis { get; set; }
     public List<string> Potential_Conflicts { get; set; }
     public string Team_Impact { get; set; }
+    public Uri? ProfilePictureUrl { get; set; }
 }
 
 public class ReanalyzeTeamRequest
@@ -127,12 +128,14 @@ public class TeamResponse
     public bool IsActive { get; set; }
 }
 
+
 public record TeamMemberDto(
     Guid EmployeeProfileId,
     string Name,
     string Role,
     int SfiaLevel,
-    bool? IsLeader
+    bool? IsLeader,
+    Uri? ProfilePictureUrl
 );
 
 public class FindTeamMemberRequest
@@ -170,6 +173,9 @@ public class TeamMemberRecommendation
 
     [JsonPropertyName("analysis")]
     public string Analysis { get; set; }
+
+    [JsonPropertyName("profilePictureUrl")]
+    public Uri? ProfilePictureUrl { get; set; }
 }
 
 public class TeamMemberUpdateRequest

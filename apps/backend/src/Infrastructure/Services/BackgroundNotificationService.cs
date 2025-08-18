@@ -10,10 +10,11 @@ namespace Infrastructure.Services;
 
 public interface IBackgroundNotificationQueue
 {
-    void QueueTeamMemberAdded(Guid employeeId, string teamName, string managerEmail);
-    void QueueTeamMemberRemoved(Guid employeeId, string teamName, string managerEmail);
+    void QueueTeamMemberAdded(string recipientEmail, string recipientName, string teamName, string managerEmail);
+    void QueueTeamMemberRemoved(string recipientEmail, string recipientName, string teamName, string managerEmail);
     void QueueTeamMemberMoved(
-        Guid employeeId,
+        string recipientEmail,
+        string recipientName,
         string sourceTeamName,
         string targetTeamName,
         string managerEmail
@@ -44,12 +45,13 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
         _queue = Channel.CreateBounded<NotificationItem>(options);
     }
 
-    public void QueueTeamMemberAdded(Guid employeeId, string teamName, string managerEmail)
+    public void QueueTeamMemberAdded(string recipientEmail, string recipientName, string teamName, string managerEmail)
     {
         var item = new NotificationItem
         {
             Type = NotificationType.TeamMemberAdded,
-            EmployeeId = employeeId,
+            RecipientEmail = recipientEmail,
+            RecipientName = recipientName,
             TeamName = teamName,
             ManagerEmail = managerEmail,
         };
@@ -57,18 +59,19 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
         if (!_queue.Writer.TryWrite(item))
         {
             _logger.LogWarning(
-                "Failed to queue team member added notification for employee {EmployeeId}",
-                employeeId
+                "Failed to queue team member added notification for {Email}",
+                recipientEmail
             );
         }
     }
 
-    public void QueueTeamMemberRemoved(Guid employeeId, string teamName, string managerEmail)
+    public void QueueTeamMemberRemoved(string recipientEmail, string recipientName, string teamName, string managerEmail)
     {
         var item = new NotificationItem
         {
             Type = NotificationType.TeamMemberRemoved,
-            EmployeeId = employeeId,
+            RecipientEmail = recipientEmail,
+            RecipientName = recipientName,
             TeamName = teamName,
             ManagerEmail = managerEmail,
         };
@@ -76,14 +79,15 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
         if (!_queue.Writer.TryWrite(item))
         {
             _logger.LogWarning(
-                "Failed to queue team member removed notification for employee {EmployeeId}",
-                employeeId
+                "Failed to queue team member removed notification for {Email}",
+                recipientEmail
             );
         }
     }
 
     public void QueueTeamMemberMoved(
-        Guid employeeId,
+        string recipientEmail,
+        string recipientName,
         string sourceTeamName,
         string targetTeamName,
         string managerEmail
@@ -92,8 +96,9 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
         var item = new NotificationItem
         {
             Type = NotificationType.TeamMemberMoved,
-            EmployeeId = employeeId,
-            SourceTeamName = sourceTeamName,
+            RecipientEmail = recipientEmail,
+            RecipientName = recipientName,
+            TeamName = sourceTeamName,
             TargetTeamName = targetTeamName,
             ManagerEmail = managerEmail,
         };
@@ -101,8 +106,8 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
         if (!_queue.Writer.TryWrite(item))
         {
             _logger.LogWarning(
-                "Failed to queue team member moved notification for employee {EmployeeId}",
-                employeeId
+                "Failed to queue team member moved notification for {Email}",
+                recipientEmail
             );
         }
     }
@@ -125,8 +130,8 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
             {
                 _logger.LogError(
                     ex,
-                    "Error processing notification for employee {EmployeeId}",
-                    notification.EmployeeId
+                    "Error processing notification for {Email}",
+                    notification.RecipientEmail
                 );
 
                 // Wait a bit before processing next notification to avoid overwhelming the system
@@ -148,39 +153,21 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
             try
             {
                 using IServiceScope scope = _serviceProvider.CreateScope();
-                IEmployeeProfileRepository employeeRepository =
-                    scope.ServiceProvider.GetRequiredService<IEmployeeProfileRepository>();
                 INotificationService notificationService =
                     scope.ServiceProvider.GetRequiredService<INotificationService>();
-
-                EmployeeProfile? profile = await employeeRepository.GetByIdWithUserAsync(
-                    notification.EmployeeId,
-                    cancellationToken
-                );
-
-                if (profile?.User?.Email == null)
-                {
-                    _logger.LogWarning(
-                        "Employee {EmployeeId} not found or has no email",
-                        notification.EmployeeId
-                    );
-                    return; // Don't retry if employee doesn't exist
-                }
-
-                string memberName = $"{profile.FirstName} {profile.LastName}";
 
                 switch (notification.Type)
                 {
                     case NotificationType.TeamMemberAdded:
                         _logger.LogInformation(
                             "Sending team member added notification to {Email} for team {TeamName}",
-                            profile.User.Email,
+                            notification.RecipientEmail,
                             notification.TeamName
                         );
 
                         await notificationService.SendTeamMemberAddedNotificationAsync(
-                            profile.User.Email,
-                            memberName,
+                            notification.RecipientEmail,
+                            notification.RecipientName,
                             notification.TeamName,
                             notification.ManagerEmail,
                             cancellationToken
@@ -190,13 +177,13 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
                     case NotificationType.TeamMemberRemoved:
                         _logger.LogInformation(
                             "Sending team member removed notification to {Email} for team {TeamName}",
-                            profile.User.Email,
+                            notification.RecipientEmail,
                             notification.TeamName
                         );
 
                         await notificationService.SendTeamMemberRemovedNotificationAsync(
-                            profile.User.Email,
-                            memberName,
+                            notification.RecipientEmail,
+                            notification.RecipientName,
                             notification.TeamName,
                             notification.ManagerEmail,
                             cancellationToken
@@ -206,16 +193,16 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
                     case NotificationType.TeamMemberMoved:
                         _logger.LogInformation(
                             "Sending team member moved notification to {Email} from {SourceTeam} to {TargetTeam}",
-                            profile.User.Email,
-                            notification.SourceTeamName,
+                            notification.RecipientEmail,
+                            notification.TeamName,
                             notification.TargetTeamName
                         );
 
                         await notificationService.SendTeamMemberMovedNotificationAsync(
-                            profile.User.Email,
-                            memberName,
-                            notification.SourceTeamName ?? "Unknown Team",
-                            notification.TargetTeamName ?? "Unknown Team",
+                            notification.RecipientEmail,
+                            notification.RecipientName,
+                            notification.TeamName,
+                            notification.TargetTeamName!,
                             notification.ManagerEmail,
                             cancellationToken
                         );
@@ -225,16 +212,16 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
                 _logger.LogInformation(
                     "Successfully sent {NotificationType} notification to {Email}",
                     notification.Type,
-                    profile.User.Email
+                    notification.RecipientEmail
                 );
                 return; // Success, exit retry loop
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogWarning(
+                _logger.LogInformation(
                     ex,
-                    "Notification processing was cancelled for employee {EmployeeId}",
-                    notification.EmployeeId
+                    "Notification processing was cancelled for {Email}",
+                    notification.RecipientEmail
                 );
                 return; // Don't retry on cancellation
             }
@@ -243,9 +230,9 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
                 attempt++;
                 _logger.LogWarning(
                     ex,
-                    "Failed to send {NotificationType} notification to employee {EmployeeId}, attempt {Attempt}/{MaxRetries}: {Message}",
+                    "Failed to send {NotificationType} notification to {Email}, attempt {Attempt}/{MaxRetries}: {Message}",
                     notification.Type,
-                    notification.EmployeeId,
+                    notification.RecipientEmail,
                     attempt,
                     maxRetries,
                     ex.Message
@@ -259,9 +246,9 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
             {
                 _logger.LogError(
                     ex,
-                    "Failed to send {NotificationType} notification to employee {EmployeeId} after {MaxRetries} attempts: {Message}",
+                    "Failed to send {NotificationType} notification to {Email} after {MaxRetries} attempts: {Message}",
                     notification.Type,
-                    notification.EmployeeId,
+                    notification.RecipientEmail,
                     maxRetries,
                     ex.Message
                 );
@@ -274,9 +261,9 @@ public class BackgroundNotificationService : BackgroundService, IBackgroundNotif
 public class NotificationItem
 {
     public NotificationType Type { get; set; }
-    public Guid EmployeeId { get; set; }
+    public string RecipientEmail { get; set; } = string.Empty;
+    public string RecipientName { get; set; } = string.Empty;
     public string TeamName { get; set; } = string.Empty;
-    public string? SourceTeamName { get; set; }
     public string? TargetTeamName { get; set; }
     public string ManagerEmail { get; set; } = string.Empty;
 }

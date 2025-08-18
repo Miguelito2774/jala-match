@@ -34,6 +34,33 @@ foreach (string envPath in envPaths)
     }
 }
 
+// Add environment variables to configuration
+builder.Configuration.AddEnvironmentVariables();
+
+// Map .env variables to configuration structure that the services expect
+var configurationValues = new Dictionary<string, string?>
+{
+    ["Email:SenderEmail"] = Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL"),
+    ["Email:SenderName"] = Environment.GetEnvironmentVariable("EMAIL_SENDER_NAME"),
+    ["Email:SmtpHost"] = Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST"),
+    ["Email:SmtpPort"] = Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT"),
+    ["Email:SmtpUsername"] = Environment.GetEnvironmentVariable("EMAIL_SMTP_USERNAME"),
+    ["Email:SmtpPassword"] = Environment.GetEnvironmentVariable("EMAIL_SMTP_PASSWORD"),
+    ["Email:EnableSsl"] = Environment.GetEnvironmentVariable("EMAIL_SMTP_ENABLE_SSL"),
+};
+
+builder.Configuration.AddInMemoryCollection(configurationValues);
+
+// Debug: Print email configuration values
+Console.WriteLine(
+    $"EMAIL_SENDER_EMAIL: {Environment.GetEnvironmentVariable("EMAIL_SENDER_EMAIL")}"
+);
+Console.WriteLine($"EMAIL_SMTP_HOST: {Environment.GetEnvironmentVariable("EMAIL_SMTP_HOST")}");
+Console.WriteLine($"EMAIL_SMTP_PORT: {Environment.GetEnvironmentVariable("EMAIL_SMTP_PORT")}");
+Console.WriteLine($"Mapped Email:SenderEmail: {builder.Configuration["Email:SenderEmail"]}");
+Console.WriteLine($"Mapped Email:SmtpHost: {builder.Configuration["Email:SmtpHost"]}");
+Console.WriteLine($"Mapped Email:SmtpPort: {builder.Configuration["Email:SmtpPort"]}");
+
 builder.Services.AddCors(options =>
     options.AddPolicy(
         "AllowFrontend",

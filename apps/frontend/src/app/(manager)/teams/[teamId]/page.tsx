@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 
 import { AddTeamMemberComponent } from '@/app/(manager)/team-members/AddMemberDialog';
 import { TeamMemberActionsDialog } from '@/app/(manager)/team-members/TeamMemberActionsDialog';
+import { TeamRadarChart } from '@/components/organisms/charts/TeamRadarChart';
 import { DashboardLayout } from '@/components/templates/DashboardLayout';
 import {
   AlertDialog,
@@ -339,6 +340,17 @@ export default function TeamPage({ params }: TeamPageProps) {
           </Card>
 
           <div className="space-y-6 lg:col-span-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Análisis de Rendimiento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <TeamRadarChart team={team} className="h-full w-full" />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Análisis del Equipo</CardTitle>

@@ -20,7 +20,6 @@ public class TeamService : ITeamService
     private readonly ITeamRepository _teamRepository;
     private readonly IEmployeeProfileRepository _employeeProfileRepository;
     private readonly ITechnologyRepository _technologyRepository;
-    private readonly INotificationService _notificationService;
     private readonly IImageStorageService _imageStorageService;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
@@ -34,7 +33,6 @@ public class TeamService : ITeamService
         ITeamRepository teamRepository,
         IEmployeeProfileRepository employeeProfileRepository,
         ITechnologyRepository technologyRepository,
-        INotificationService notificationService,
         IImageStorageService imageStorageService
     )
     {
@@ -43,7 +41,6 @@ public class TeamService : ITeamService
         _teamRepository = teamRepository;
         _employeeProfileRepository = employeeProfileRepository;
         _technologyRepository = technologyRepository;
-        _notificationService = notificationService;
         _imageStorageService = imageStorageService;
     }
 
@@ -160,47 +157,27 @@ public class TeamService : ITeamService
                 // Enrich recommended_members with profile pictures
                 if (aiResponse.recommended_members?.Any() == true)
                 {
-                    _logger.LogInformation(
-                        "Enriching {Count} recommended members with profile pictures",
-                        aiResponse.recommended_members.Count
-                    );
-
-                    foreach (
-                        AiRecommendedMember recommendedMember in aiResponse.recommended_members
-                    )
+                    _logger.LogInformation("Enriching {Count} recommended members with profile pictures", aiResponse.recommended_members.Count);
+                    
+                    foreach (var recommendedMember in aiResponse.recommended_members)
                     {
                         try
                         {
-                            EmployeeProfile? employeeProfile =
-                                await _employeeProfileRepository.GetByIdAsync(recommendedMember.Id);
+                            var employeeProfile = await _employeeProfileRepository.GetByIdWithUserAsync(recommendedMember.Id, cancellationToken);
                             if (employeeProfile?.User?.ProfilePicturePublicId != null)
                             {
-                                recommendedMember.ProfilePictureUrl =
-                                    _imageStorageService.GenerateImageUrl(
-                                        employeeProfile.User.ProfilePicturePublicId
-                                    );
-                                _logger.LogDebug(
-                                    "Generated profile picture URL for recommended member {MemberId}: {Url}",
-                                    recommendedMember.Id,
-                                    recommendedMember.ProfilePictureUrl
-                                );
+                                recommendedMember.ProfilePictureUrl = _imageStorageService.GenerateImageUrl(employeeProfile.User.ProfilePicturePublicId);
+                                _logger.LogDebug("Generated profile picture URL for recommended member {MemberId}: {Url}", 
+                                    recommendedMember.Id, recommendedMember.ProfilePictureUrl);
                             }
                             else
                             {
-                                _logger.LogDebug(
-                                    "No profile picture found for recommended member {MemberId}",
-                                    recommendedMember.Id
-                                );
+                                _logger.LogDebug("No profile picture found for recommended member {MemberId}", recommendedMember.Id);
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(
-                                ex,
-                                "Failed to enrich profile picture for recommended member {MemberId}",
-                                recommendedMember.Id
-                            );
-                            // Continue with other members even if one fails
+                            _logger.LogWarning(ex, "Failed to enrich profile picture for recommended member {MemberId}", recommendedMember.Id);
                         }
                     }
                 }
@@ -303,8 +280,8 @@ public class TeamService : ITeamService
 
             foreach (TeamMemberDto memberDto in command.Members)
             {
-                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                    memberDto.EmployeeProfileId
+                EmployeeProfile? profile = await _employeeProfileRepository.GetByIdWithUserAsync(
+                    memberDto.EmployeeProfileId, cancellationToken
                 );
                 if (profile is null)
                 {
@@ -319,57 +296,13 @@ public class TeamService : ITeamService
                         Role = memberDto.Role,
                         SfiaLevel = memberDto.SfiaLevel,
                         IsLeader = memberDto.EmployeeProfileId == command.LeaderId,
+                        EmployeeProfile = profile // Asignar la relación de navegación
                     }
                 );
             }
 
             await _teamRepository.AddAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
-
-            // Fire and forget: Send notifications in background without blocking response
-            _ = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        EmployeeProfile? creatorProfile =
-                            await _employeeProfileRepository.GetByIdAsync(command.CreatorId);
-                        string managerEmail = creatorProfile?.User?.Email ?? "No disponible";
-
-                        foreach (TeamMember member in team.Members)
-                        {
-                            EmployeeProfile? memberProfile =
-                                await _employeeProfileRepository.GetByIdAsync(
-                                    member.EmployeeProfileId
-                                );
-
-                            if (memberProfile?.User?.Email != null)
-                            {
-                                string memberName =
-                                    $"{memberProfile.FirstName} {memberProfile.LastName}";
-
-                                await _notificationService.SendTeamMemberAddedNotificationAsync(
-                                    memberProfile.User.Email,
-                                    memberName,
-                                    team.Name,
-                                    managerEmail,
-                                    CancellationToken.None // Use CancellationToken.None for background task
-                                );
-                            }
-                        }
-                    }
-                    catch (Exception notificationEx)
-                    {
-                        _logger.LogError(
-                            notificationEx,
-                            "Error sending team creation notifications for team {TeamId}",
-                            team.Id
-                        );
-                        // Don't fail team creation if notifications fail
-                    }
-                },
-                CancellationToken.None
-            );
 
             return new TeamResponse
             {
@@ -378,16 +311,22 @@ public class TeamService : ITeamService
                 CreatorId = team.CreatorId,
                 CompatibilityScore = team.CompatibilityScore,
                 Members = team
-                    .Members.Select(m => new TeamMemberDto(
-                        m.EmployeeProfileId,
-                        m.Name,
-                        m.Role,
-                        m.SfiaLevel,
-                        m.IsLeader,
-                        _imageStorageService.GenerateImageUrl(
-                            m.EmployeeProfile?.User?.ProfilePicturePublicId
-                        )
-                    ))
+                    .Members.Select(m => {
+                        var profilePictureUrl = _imageStorageService.GenerateImageUrl(m.EmployeeProfile?.User?.ProfilePicturePublicId);
+                        _logger.LogDebug("CreateTeam - Building TeamMemberDto for {MemberId} - ProfilePicturePublicId: '{PublicId}', GeneratedUrl: '{Url}'", 
+                            m.EmployeeProfileId, 
+                            m.EmployeeProfile?.User?.ProfilePicturePublicId ?? "null", 
+                            profilePictureUrl?.ToString() ?? "null");
+                        
+                        return new TeamMemberDto(
+                            m.EmployeeProfileId,
+                            m.Name,
+                            m.Role,
+                            m.SfiaLevel,
+                            m.IsLeader,
+                            profilePictureUrl
+                        );
+                    })
                     .ToList(),
                 RequiredTechnologies = command.RequiredTechnologies,
                 Analysis = command.Analysis,
@@ -515,17 +454,14 @@ public class TeamService : ITeamService
                 // Enrich recommendations with profile picture URLs
                 foreach (TeamMemberRecommendation recommendation in recommendations)
                 {
-                    EmployeeProfile? employeeProfile =
-                        await _employeeProfileRepository.GetByIdWithUserAsync(
-                            recommendation.EmployeeId,
-                            cancellationToken
-                        );
-
+                    EmployeeProfile? employeeProfile = await _employeeProfileRepository.GetByIdWithUserAsync(
+                        recommendation.EmployeeId, 
+                        cancellationToken
+                    );
+                    
                     if (employeeProfile?.User != null)
                     {
-                        recommendation.ProfilePictureUrl = _imageStorageService.GenerateImageUrl(
-                            employeeProfile.User.ProfilePicturePublicId
-                        );
+                        recommendation.ProfilePictureUrl = _imageStorageService.GenerateImageUrl(employeeProfile.User.ProfilePicturePublicId);
                     }
                 }
 
@@ -588,8 +524,8 @@ public class TeamService : ITeamService
 
             foreach (TeamMemberDto member in request.Members)
             {
-                EmployeeProfile? employeeProfile = await _employeeProfileRepository.GetByIdAsync(
-                    member.EmployeeProfileId
+                EmployeeProfile? employeeProfile = await _employeeProfileRepository.GetByIdWithUserAsync(
+                    member.EmployeeProfileId, cancellationToken
                 );
 
                 if (employeeProfile == null)
@@ -621,6 +557,7 @@ public class TeamService : ITeamService
                     SfiaLevel = member.SfiaLevel,
                     Name = member.Name,
                     IsLeader = false,
+                    EmployeeProfile = employeeProfile // Asignar la relación de navegación
                 };
 
                 team.Members.Add(newMember);
@@ -629,96 +566,7 @@ public class TeamService : ITeamService
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Fire and forget: Send notifications for team member additions in background
-            _ = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        foreach (TeamMemberDto memberDto in request.Members)
-                        {
-                            // Only process notifications for actually new members
-                            if (!newMemberIds.Contains(memberDto.EmployeeProfileId))
-                            {
-                                continue;
-                            }
-
-                            EmployeeProfile? profile =
-                                await _employeeProfileRepository.GetByIdAsync(
-                                    memberDto.EmployeeProfileId
-                                );
-
-                            if (profile?.User.Email != null)
-                            {
-                                // Send notification to the new member
-                                await _notificationService.SendTeamMemberAddedNotificationAsync(
-                                    profile.User.Email,
-                                    $"{profile.FirstName} {profile.LastName}",
-                                    team.Name,
-                                    team.Creator?.Email ?? "manager@jalamatch.com",
-                                    CancellationToken.None
-                                );
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(
-                            ex,
-                            "Error sending team member addition notifications for team {TeamId}",
-                            team.Id
-                        );
-                        // Don't fail the operation just because notifications failed
-                    }
-                },
-                CancellationToken.None
-            );
-
-            // Update availability for new members only
-            foreach (Guid newMemberId in newMemberIds)
-            {
-                EmployeeProfile? ep = await _employeeProfileRepository.GetByIdAsync(newMemberId);
-                if (ep != null && ep.TeamMemberships.Count >= 2 && ep.Availability)
-                {
-                    ep.Availability = false;
-                    await _employeeProfileRepository.UpdateAsync(ep);
-                }
-            }
-            await _teamRepository.SaveChangesAsync(cancellationToken);
-
-            return Result.Success(
-                new TeamResponse
-                {
-                    TeamId = team.Id,
-                    Name = team.Name,
-                    CreatorId = team.CreatorId,
-                    CompatibilityScore = team.CompatibilityScore,
-                    Members = team
-                        .Members.Select(m => new TeamMemberDto(
-                            m.EmployeeProfileId,
-                            m.Name,
-                            m.Role,
-                            m.SfiaLevel,
-                            m.IsLeader,
-                            _imageStorageService.GenerateImageUrl(
-                                m.EmployeeProfile?.User?.ProfilePicturePublicId
-                            )
-                        ))
-                        .ToList(),
-                    RequiredTechnologies = team
-                        .RequiredTechnologies.Select(rt => rt.Technology.Name)
-                        .ToList(),
-                    Analysis = JsonSerializer.Deserialize<AiTeamAnalysis?>(
-                        team.AiAnalysis ?? "{}",
-                        _jsonOptions
-                    ),
-                    Weights = JsonSerializer.Deserialize<WeightCriteria>(
-                        team.WeightCriteria ?? "{}",
-                        _jsonOptions
-                    ),
-                    IsActive = team.IsActive,
-                }
-            );
+            return BuildSafeTeamResponse(team);
         }
         catch (Exception ex)
         {
@@ -778,46 +626,22 @@ public class TeamService : ITeamService
                 );
             }
 
+            // Get member profile for any future use if needed
+            EmployeeProfile? memberProfile = await _employeeProfileRepository.GetByIdWithUserAsync(
+                request.EmployeeProfileId, cancellationToken
+            );
+
+            // Clear any tracking to avoid disposed context issues
+            memberProfile = null;
+            
+            // NOW perform database operations
             team.Members.Remove(memberToRemove);
 
             await _teamRepository.UpdateAsync(team, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Fire and forget: Send notifications for team member removal in background
-            _ = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                            request.EmployeeProfileId
-                        );
-
-                        if (profile?.User.Email != null)
-                        {
-                            // Send notification to the removed member
-                            await _notificationService.SendTeamMemberRemovedNotificationAsync(
-                                profile.User.Email,
-                                $"{profile.FirstName} {profile.LastName}",
-                                team.Name,
-                                team.Creator?.Email ?? "manager@jalamatch.com",
-                                CancellationToken.None
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(
-                            ex,
-                            "Error sending team member removal notification for team {TeamId}",
-                            team.Id
-                        );
-                    }
-                },
-                CancellationToken.None
-            );
-
-            return BuildTeamResponse(team);
+            // Use safe response building that doesn't access navigation properties
+            return BuildSafeTeamResponse(team);
         }
         catch (Exception ex)
         {
@@ -907,6 +731,11 @@ public class TeamService : ITeamService
                 );
             }
 
+            // Get member profile for creating new member
+            EmployeeProfile? memberProfile = await _employeeProfileRepository.GetByIdWithUserAsync(
+                memberToMove.EmployeeProfileId, cancellationToken
+            );
+
             var newMember = new TeamMember
             {
                 Id = Guid.NewGuid(),
@@ -916,54 +745,30 @@ public class TeamService : ITeamService
                 Role = memberToMove.Role,
                 SfiaLevel = memberToMove.SfiaLevel,
                 IsLeader = false,
+                EmployeeProfile = memberProfile
             };
 
             sourceTeam.Members.Remove(memberToMove);
             targetTeam.Members.Add(newMember);
 
-            // Actualizar ambos equipos
+            // UPDATE DATABASE
             await _teamRepository.UpdateAsync(sourceTeam, cancellationToken);
             await _teamRepository.UpdateAsync(targetTeam, cancellationToken);
             await _teamRepository.SaveChangesAsync(cancellationToken);
 
-            // Fire and forget: Send notifications for team member move in background
-            _ = Task.Run(
-                async () =>
-                {
-                    try
-                    {
-                        EmployeeProfile? profile = await _employeeProfileRepository.GetByIdAsync(
-                            request.EmployeeProfileId
-                        );
+            // BUILD RESPONSES AFTER SAVECHANGES (reload from DB)
+            Result<TeamResponse> sourceTeamResponse = BuildSafeTeamResponse(sourceTeam);
+            Result<TeamResponse> targetTeamResponse = BuildSafeTeamResponse(targetTeam);
 
-                        if (profile?.User.Email != null)
-                        {
-                            // Send notification to the moved member
-                            await _notificationService.SendTeamMemberMovedNotificationAsync(
-                                profile.User.Email,
-                                $"{profile.FirstName} {profile.LastName}",
-                                sourceTeam.Name,
-                                targetTeam.Name,
-                                targetTeam.Creator?.Email ?? "manager@jalamatch.com",
-                                CancellationToken.None
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(
-                            ex,
-                            "Error sending team member move notifications for teams {SourceTeamId} -> {TargetTeamId}",
-                            sourceTeam.Id,
-                            targetTeam.Id
-                        );
-                    }
-                },
-                CancellationToken.None
-            );
+            if (sourceTeamResponse.IsFailure)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(sourceTeamResponse.Error);
+            }
 
-            Result<TeamResponse> sourceTeamResponse = BuildTeamResponse(sourceTeam);
-            Result<TeamResponse> targetTeamResponse = BuildTeamResponse(targetTeam);
+            if (targetTeamResponse.IsFailure)
+            {
+                return Result.Failure<(TeamResponse, TeamResponse)>(targetTeamResponse.Error);
+            }
 
             return Result.Success((sourceTeamResponse.Value, targetTeamResponse.Value));
         }
@@ -980,8 +785,9 @@ public class TeamService : ITeamService
         }
     }
 
-    private Result<TeamResponse> BuildTeamResponse(Team team)
+    private Result<TeamResponse> BuildSafeTeamResponse(Team team)
     {
+        // Build response without accessing navigation properties that might cause lazy loading
         return Result.Success(
             new TeamResponse
             {
@@ -996,10 +802,87 @@ public class TeamService : ITeamService
                         m.Role,
                         m.SfiaLevel,
                         m.IsLeader,
-                        _imageStorageService.GenerateImageUrl(
-                            m.EmployeeProfile?.User?.ProfilePicturePublicId
-                        )
+                        null // No profile picture URL to avoid navigation property access
                     ))
+                    .ToList(),
+                RequiredTechnologies = team
+                    .RequiredTechnologies.Select(rt => rt.Technology?.Name ?? "Unknown")
+                    .ToList(),
+                Analysis = JsonSerializer.Deserialize<AiTeamAnalysis?>(
+                    team.AiAnalysis ?? "{}",
+                    _jsonOptions
+                ),
+                Weights = JsonSerializer.Deserialize<WeightCriteria>(
+                    team.WeightCriteria ?? "{}",
+                    _jsonOptions
+                ),
+                IsActive = team.IsActive,
+            }
+        );
+    }
+
+    private Result<TeamResponse> BuildTeamResponse(Team team)
+    {
+        return Result.Success(
+            new TeamResponse
+            {
+                TeamId = team.Id,
+                Name = team.Name,
+                CreatorId = team.CreatorId,
+                CompatibilityScore = team.CompatibilityScore,
+                Members = team
+                    .Members.Select(m => {
+                        var profilePictureUrl = _imageStorageService.GenerateImageUrl(m.EmployeeProfile?.User?.ProfilePicturePublicId);
+                        
+                        return new TeamMemberDto(
+                            m.EmployeeProfileId,
+                            m.Name,
+                            m.Role,
+                            m.SfiaLevel,
+                            m.IsLeader,
+                            profilePictureUrl
+                        );
+                    })
+                    .ToList(),
+                RequiredTechnologies = team
+                    .RequiredTechnologies.Select(rt => rt.Technology.Name)
+                    .ToList(),
+                Analysis = JsonSerializer.Deserialize<AiTeamAnalysis?>(
+                    team.AiAnalysis ?? "{}",
+                    _jsonOptions
+                ),
+                Weights = JsonSerializer.Deserialize<WeightCriteria>(
+                    team.WeightCriteria ?? "{}",
+                    _jsonOptions
+                ),
+                IsActive = team.IsActive,
+            }
+        );
+    }
+
+    private Result<TeamResponse> BuildTeamResponseFromEntity(Team team)
+    {
+        // Build response directly from in-memory entity - simple like original
+        return Result.Success(
+            new TeamResponse
+            {
+                TeamId = team.Id,
+                Name = team.Name,
+                CreatorId = team.CreatorId,
+                CompatibilityScore = team.CompatibilityScore,
+                Members = team
+                    .Members.Select(m => {
+                        var profilePictureUrl = _imageStorageService.GenerateImageUrl(m.EmployeeProfile?.User?.ProfilePicturePublicId);
+                        
+                        return new TeamMemberDto(
+                            m.EmployeeProfileId,
+                            m.Name,
+                            m.Role,
+                            m.SfiaLevel,
+                            m.IsLeader,
+                            profilePictureUrl
+                        );
+                    })
                     .ToList(),
                 RequiredTechnologies = team
                     .RequiredTechnologies.Select(rt => rt.Technology.Name)

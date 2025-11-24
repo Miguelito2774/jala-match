@@ -12,5 +12,6 @@ public record CreateTeamCommand(
     AiTeamAnalysis Analysis,
     int CompatibilityScore,
     WeightCriteria Weights,
-    List<string> RequiredTechnologies
+    List<string> RequiredTechnologies,
+    bool IsBlended = false
 ) : ICommand<TeamResponse>;

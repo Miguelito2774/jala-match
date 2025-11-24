@@ -32,6 +32,7 @@ export interface Team {
   name: string;
   creatorId: string;
   compatibilityScore: number;
+  isBlended: boolean;
   members: TeamMember[];
   requiredTechnologies: string[];
   analysis: TeamAnalysis;
@@ -49,6 +50,7 @@ export interface CreateTeamRequest {
   compatibilityScore: number;
   weights: TeamWeights;
   requiredTechnologies: string[];
+  isBlended?: boolean;
 }
 
 export interface MoveTeamMemberRequest {

@@ -9,6 +9,7 @@ public class Team : Entity
     public Guid CreatorId { get; set; }
     public double CompatibilityScore { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsBlended { get; set; }
     public string? AiAnalysis { get; set; }
     public string? WeightCriteria { get; set; }
 

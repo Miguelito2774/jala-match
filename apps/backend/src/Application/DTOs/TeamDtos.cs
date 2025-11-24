@@ -26,6 +26,15 @@ public sealed record GenerateTeamsRequest(
     WeightCriteria Weights
 );
 
+public sealed record GenerateBlendedTeamRequest(
+    Guid CreatorId,
+    int TeamSize,
+    List<string> Technologies,
+    string ProjectComplexity,
+    int SfiaLevel,
+    WeightCriteria Weights
+);
+
 public sealed record CreateTeamsRequest(
     string Name,
     Guid CreatorId,
@@ -34,7 +43,8 @@ public sealed record CreateTeamsRequest(
     AiTeamAnalysis Analysis,
     int CompatibilityScore,
     WeightCriteria Weights,
-    List<string> RequiredTechnologies
+    List<string> RequiredTechnologies,
+    bool IsBlended = false
 );
 
 public sealed record TeamMemberGenerated(
@@ -117,6 +127,7 @@ public class TeamResponse
     public string Name { get; set; }
     public Guid CreatorId { get; set; }
     public double CompatibilityScore { get; set; }
+    public bool IsBlended { get; set; }
     public List<TeamMemberDto> Members { get; set; } = new();
     public List<string>? RequiredTechnologies { get; set; } = new();
 

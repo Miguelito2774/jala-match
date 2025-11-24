@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import UUID4, BaseModel, Field
 import os
 import json
+import uuid
 from dotenv import load_dotenv
 from anthropic import Anthropic
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +15,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5001"],
+    allow_origins=[
+        "http://localhost:3000",  # Frontend Next.js
+        "http://localhost:5001",  # Backend .NET
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,6 +66,18 @@ class TeamGenerationRequest(BaseModel):
     team_size: int = Field(alias="TeamSize")
     requirements: List[TechnicalRoleSpec] = Field(..., alias="Requirements")
     technologies: List[str] = Field(alias="Technologies")
+    sfia_level: int = Field(alias="SfiaLevel")
+    weights: WeightsModel = Field(alias="Weights")
+    availability: bool = Field(alias="Availability")
+
+    class Config:
+        populate_by_name = True
+
+class BlendedTeamGenerationRequest(BaseModel):
+    creator_id: str = Field(alias="CreatorId")
+    team_size: int = Field(alias="TeamSize")
+    technologies: List[str] = Field(alias="Technologies")
+    project_complexity: str = Field(alias="ProjectComplexity")  # Low, Medium, High
     sfia_level: int = Field(alias="SfiaLevel")
     weights: WeightsModel = Field(alias="Weights")
     availability: bool = Field(alias="Availability")
@@ -579,3 +595,183 @@ async def reanalyze_team(request: TeamReanalysisRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-blended-team")
+async def generate_blended_team(request: BlendedTeamGenerationRequest):
+    """
+    Endpoint para generar equipos en modo Blended.
+    La IA determina automáticamente la mezcla óptima de roles, niveles y especialidades
+    basándose en las tecnologías y la complejidad del proyecto.
+    """
+    db_service = TeamDatabaseService("postgresql://postgres:postgres@postgres:5432/postgres-db")
+    await db_service.connect()
+    
+    try:
+        # Obtener candidatos disponibles con el filtro de privacidad
+        candidates = await db_service.get_generation_candidates(
+            requirements=[],  # No especificamos roles, la IA los determinará
+            technologies=request.technologies,
+            min_sfia_level=request.sfia_level,
+            availability=request.availability
+        )
+        
+        if not candidates:
+            raise HTTPException(status_code=404, detail="No se encontraron candidatos disponibles")
+        
+        # Generar UUID para el equipo
+        generated_team_id = str(uuid.uuid4())
+        
+        # Preparar prompt para la IA con análisis de complejidad
+        client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+        
+        complexity_factors = {
+            "Low": "Proyecto simple con tecnologías estándar y bajo riesgo técnico.",
+            "Medium": "Proyecto balanceado que requiere experiencia moderada y coordinación.",
+            "High": "Proyecto complejo que demanda alta especialización y arquitectura robusta."
+        }
+        
+        prompt = f"""
+        # ANÁLISIS Y GENERACIÓN DE EQUIPO BLENDED
+
+        ## CONTEXTO DEL PROYECTO
+        - **Tecnologías Requeridas**: {', '.join(request.technologies)}
+        - **Complejidad del Proyecto**: {request.project_complexity} - {complexity_factors.get(request.project_complexity, 'Media')}
+        - **Tamaño del Equipo**: {request.team_size} personas
+        - **Nivel SFIA Mínimo**: {request.sfia_level}
+
+        ## CRITERIOS DE PRIORIZACIÓN (Pesos)
+        - SFIA/Experiencia: {request.weights.sfia_weight}%
+        - Habilidades Técnicas: {request.weights.technical_weight}%
+        - Perfil Psicológico: {request.weights.psychological_weight}%
+        - Experiencia Previa: {request.weights.experience_weight}%
+        - Idiomas: {request.weights.language_weight}%
+        - Intereses: {request.weights.interests_weight}%
+        - Zona Horaria: {request.weights.timezone_weight}%
+
+        ## POOL DE CANDIDATOS DISPONIBLES
+        {json.dumps(candidates[:50], indent=2, default=str)}  # Limitamos a 50 candidatos para evitar prompts muy largos
+
+        ## TU MISIÓN COMO AI
+        
+        Debes crear un equipo blended óptimo considerando:
+        
+        1. **ANÁLISIS DE TECNOLOGÍAS**: 
+           - Identifica qué tecnologías requieren especialistas senior vs generalistas
+           - Ejemplo: React puede necesitar 1 senior frontend, mientras PostgreSQL puede ser manejado por un mid-level
+        
+        2. **DISTRIBUCIÓN DE SENIORITY**:
+           - Para complejidad BAJA: Mayoría mid/junior con 1 senior como guía
+           - Para complejidad MEDIA: Balance entre seniors (30-40%), mids (40-50%), juniors (10-20%)
+           - Para complejidad ALTA: Mayoría seniors/architects (50-60%), algunos mids (30-40%), pocos juniors (10%)
+        
+        3. **MEZCLA DE ROLES**:
+           - No todos deben ser super especializados
+           - Incluye generalistas (fullstack) para flexibilidad
+           - Asegura cobertura de todas las áreas técnicas necesarias
+        
+        4. **OPTIMIZACIÓN COSTO-BENEFICIO**:
+           - Maximiza valor del equipo sin sobre-ingenierizar
+           - Balancea experiencia con costo (seniors vs juniors)
+        
+        5. **COMPATIBILIDAD Y CULTURA**:
+           - Considera MBTI para dinámicas de equipo
+           - Timezone overlap para colaboración
+           - Intereses compartidos para cohesión
+        
+        ## FORMATO DE RESPUESTA REQUERIDO (JSON estricto)
+        
+        IMPORTANTE: 
+        - Usa SOLO los IDs exactos de empleados del pool de candidatos (campo "id")
+        - Los member IDs deben ser los UUIDs tal como aparecen en el pool (sin modificar)
+        - NO inventes IDs nuevos, usa los que están en el pool de candidatos
+        - El team_id ya está generado: {generated_team_id}
+        
+        {{
+          "teams": [
+            {{
+              "team_id": "{generated_team_id}",
+              "members": [
+                {{
+                  "id": "copia_el_id_exacto_del_candidato_del_pool",
+                  "name": "Nombre Completo del candidato",
+                  "role": "Frontend Developer / Backend Developer / DevOps / etc",
+                  "sfia_level": 4,
+                  "assigned_responsibilities": "Qué hará específicamente en el proyecto"
+                }}
+              ]
+            }}
+          ],
+          "recommended_members": [
+            {{
+              "id": "employee_id_del_pool",
+              "name": "Nombre Completo",
+              "compatibility_score": 85,
+              "analysis": "Análisis de por qué este candidato sería una buena alternativa",
+              "potential_conflicts": [
+                "Posible conflicto 1 si se añade",
+                "Posible conflicto 2 relacionado con el equipo"
+              ],
+              "team_impact": "Impacto positivo/negativo que tendría en la dinámica del equipo"
+            }}
+          ],
+          "recommended_leader": {{
+            "id": "employee_id",
+            "name": "Nombre",
+            "rationale": "Por qué es el mejor líder para este proyecto blended"
+          }},
+          "team_analysis": {{
+            "strengths": [
+              "Fortaleza 1 del equipo mixto",
+              "Fortaleza 2 de la distribución de seniority",
+              "Fortaleza 3 de cobertura técnica"
+            ],
+            "weaknesses": [
+              "Posible gap de conocimiento en X",
+              "Riesgo de coordinación en Y"
+            ],
+            "compatibility": "Análisis detallado de la dinámica del equipo blended (200 palabras)",
+            "blending_strategy": "Explicación de por qué esta mezcla específica es óptima para el proyecto"
+          }},
+          "compatibility_score": 85,
+          "complexity_analysis": {{
+            "technology_breakdown": [
+              {{
+                "tech": "{request.technologies[0] if request.technologies else 'N/A'}",
+                "complexity_level": "High/Medium/Low",
+                "required_expertise": "Senior/Mid/Junior",
+                "justification": "Por qué necesita este nivel"
+              }}
+            ],
+            "recommended_distribution": {{
+              "seniors": 2,
+              "mids": 1,
+              "juniors": 1
+            }}
+          }}
+        }}
+        
+        IMPORTANTE: 
+        - Selecciona EXACTAMENTE {request.team_size} miembros para el equipo principal
+        - "recommended_members" debe incluir 3-5 candidatos alternativos del pool (NO incluidos en el equipo)
+        - Solo usa IDs de empleados que aparecen en el pool de candidatos
+        - La mezcla debe ser ESTRATÉGICA, no aleatoria
+        - Justifica cada decisión de seniority y rol
+        """
+        
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4000,
+            temperature=0.3,  # Un poco más de creatividad para la mezcla
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        result = json.loads(response.content[0].text)
+        return result
+        
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Error parsing AI response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating blended team: {str(e)}")
+    finally:
+        await db_service.disconnect()

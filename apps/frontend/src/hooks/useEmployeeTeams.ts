@@ -52,6 +52,7 @@ export interface EmployeeTeam {
   isActive: boolean;
   teammates: Teammate[];
   isCurrentUserLeader: boolean;
+  isBlended: boolean;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';

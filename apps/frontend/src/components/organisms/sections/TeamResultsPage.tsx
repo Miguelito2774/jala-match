@@ -33,6 +33,7 @@ interface TeamResultsPageProps {
     teamName?: string;
     requiredTechnologies: string[];
     weights: TeamWeights;
+    isBlended?: boolean;
   };
   onBack: () => void;
   onSuccess?: (teamId: string) => void;
@@ -117,7 +118,7 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
     setUsedRecommendedMembers([]);
   };
 
-  const filteredRecommendedMembers = teamData.recommended_members.filter(
+  const filteredRecommendedMembers = (teamData.recommended_members || []).filter(
     (member) => !usedRecommendedMembers.includes(member.id),
   );
 
@@ -129,6 +130,7 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
       creatorId: formData.creatorId,
       weights: formData.weights,
       requiredTechnologies: formData.requiredTechnologies,
+      isBlended: formData.isBlended || false,
     };
 
     const updatedTeamData = {
@@ -393,18 +395,20 @@ export const TeamResultsPage = ({ teamData, formData, onBack, onSuccess }: TeamR
                       <TabsContent value="info" className="rounded bg-gray-50 p-3">
                         <div className="space-y-3 text-sm">
                           <p>
-                            <span className="font-medium">Análisis:</span> {member.analysis}
+                            <span className="font-medium">Análisis:</span> {member.analysis || 'No disponible'}
                           </p>
-                          <div>
-                            <p className="font-medium">Posibles conflictos:</p>
-                            <ul className="list-disc pl-5">
-                              {member.potential_Conflicts.map((conflict, idx) => (
-                                <li key={idx}>{conflict}</li>
-                              ))}
-                            </ul>
-                          </div>
+                          {member.potential_Conflicts && member.potential_Conflicts.length > 0 && (
+                            <div>
+                              <p className="font-medium">Posibles conflictos:</p>
+                              <ul className="list-disc pl-5">
+                                {member.potential_Conflicts.map((conflict, idx) => (
+                                  <li key={idx}>{conflict}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                           <p>
-                            <span className="font-medium">Impacto:</span> {member.team_Impact}
+                            <span className="font-medium">Impacto:</span> {member.team_Impact || 'No disponible'}
                           </p>
                         </div>
                       </TabsContent>

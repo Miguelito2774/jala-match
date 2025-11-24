@@ -39,6 +39,7 @@ internal sealed class GetTeamByIdQueryHandler : IQueryHandler<GetTeamByIdQuery, 
             Name = team.Name,
             CreatorId = team.CreatorId,
             CompatibilityScore = team.CompatibilityScore,
+            IsBlended = team.IsBlended,
             Members = team
                 .Members.Select(m => new TeamMemberDto(
                     m.EmployeeProfileId,

@@ -83,7 +83,14 @@ export const TeamCard = ({ team, onDelete }: TeamCardProps) => {
       >
         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-800">{team.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-800">{team.name}</h3>
+              {team.isBlended && (
+                <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                  ✨ Blended
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center">
               <span className={`text-lg font-bold ${getCompatibilityColorClass(team.compatibilityScore)}`}>
                 {team.compatibilityScore}%

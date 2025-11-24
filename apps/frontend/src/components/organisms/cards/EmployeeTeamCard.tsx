@@ -63,6 +63,11 @@ export const EmployeeTeamCard = ({ team }: EmployeeTeamCardProps) => {
             >
               {team.isActive ? 'Activo' : 'Inactivo'}
             </div>
+            {team.isBlended && (
+              <Badge variant="default" className="bg-gradient-to-r from-purple-500 to-pink-500 text-xs text-white">
+                ✨ Blended
+              </Badge>
+            )}
             {team.isCurrentUserLeader && (
               <Badge variant="outline" className="bg-yellow-50 text-xs text-yellow-700">
                 <Crown className="mr-1 h-3 w-3" />

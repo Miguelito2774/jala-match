@@ -17,6 +17,17 @@ public interface ITeamService
         bool availability = true
     );
 
+    Task<Result<AiServiceResponse>> GenerateBlendedTeam(
+        Guid creatorId,
+        int teamSize,
+        List<string> technologies,
+        string projectComplexity,
+        int sfiaLevel,
+        WeightCriteria weights,
+        CancellationToken cancellationToken,
+        bool availability = true
+    );
+
     Task<Result<TeamResponse>> CreateTeam(
         CreateTeamCommand command,
         CancellationToken cancellationToken

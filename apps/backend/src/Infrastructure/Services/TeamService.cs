@@ -245,6 +245,200 @@ public class TeamService : ITeamService
         }
     }
 
+    public async Task<Result<AiServiceResponse>> GenerateBlendedTeam(
+        Guid creatorId,
+        int teamSize,
+        List<string> technologies,
+        string projectComplexity,
+        int sfiaLevel,
+        WeightCriteria weights,
+        CancellationToken cancellationToken,
+        bool availability = true
+    )
+    {
+        try
+        {
+            var request = new
+            {
+                CreatorId = creatorId,
+                Technologies = technologies,
+                ProjectComplexity = projectComplexity,
+                SfiaLevel = sfiaLevel,
+                TeamSize = teamSize,
+                Weights = new
+                {
+                    weights.SfiaWeight,
+                    weights.TechnicalWeight,
+                    weights.PsychologicalWeight,
+                    weights.InterestsWeight,
+                    weights.ExperienceWeight,
+                    weights.LanguageWeight,
+                    weights.TimezoneWeight,
+                },
+                Availability = availability,
+            };
+
+            string requestJson = JsonSerializer.Serialize(request, _jsonOptions);
+            _logger.LogInformation(
+                "Request payload for blended team generation: {RequestPayload}",
+                requestJson
+            );
+
+            var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+
+            _logger.LogInformation("Sending request to AI Service for blended team generation");
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await _httpClient.PostAsync(
+                    "/generate-blended-team",
+                    content,
+                    cancellationToken
+                );
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(
+                    httpEx,
+                    "HTTP request failed while calling AI Service: {Message}",
+                    httpEx.Message
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.BlendedGeneration.HttpRequestFailed",
+                        $"Failed to connect to AI Service: {httpEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+
+            string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogInformation(
+                "Received response from AI Service with status code {StatusCode}",
+                response.StatusCode
+            );
+            _logger.LogDebug("Response content: {Content}", responseContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "AI Service returned error: {StatusCode} - {Content}",
+                    response.StatusCode,
+                    responseContent
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.BlendedGeneration.Failed",
+                        $"AI Service responded with {response.StatusCode}: {responseContent}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+
+            try
+            {
+                AiServiceResponse aiResponse = JsonSerializer.Deserialize<AiServiceResponse>(
+                    responseContent,
+                    _jsonOptions
+                );
+
+                if (aiResponse == null)
+                {
+                    _logger.LogWarning("Failed to deserialize AI Service response");
+                    return Result.Failure<AiServiceResponse>(
+                        new Error(
+                            "Teams.BlendedGeneration.DeserializationFailed",
+                            "Failed to deserialize response from AI Service",
+                            ErrorType.Failure
+                        )
+                    );
+                }
+
+                // Enrich recommended_members with profile pictures
+                if (aiResponse.recommended_members?.Any() == true)
+                {
+                    foreach (
+                        AiRecommendedMember recommendedMember in aiResponse.recommended_members
+                    )
+                    {
+                        try
+                        {
+                            EmployeeProfile? employeeProfile =
+                                await _employeeProfileRepository.GetByIdWithUserAsync(
+                                    recommendedMember.Id,
+                                    cancellationToken
+                                );
+
+                            if (
+                                employeeProfile?.User?.ProfilePicturePublicId != null
+                                && !string.IsNullOrEmpty(
+                                    employeeProfile.User.ProfilePicturePublicId
+                                )
+                            )
+                            {
+                                recommendedMember.ProfilePictureUrl =
+                                    _imageStorageService.GenerateImageUrl(
+                                        employeeProfile.User.ProfilePicturePublicId
+                                    );
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "Failed to enrich profile picture for recommended member {MemberId}",
+                                recommendedMember.Id
+                            );
+                        }
+                    }
+                }
+
+                return aiResponse;
+            }
+            catch (JsonException jsonEx)
+            {
+                _logger.LogError(
+                    jsonEx,
+                    "Failed to deserialize response: {Message}",
+                    jsonEx.Message
+                );
+                return Result.Failure<AiServiceResponse>(
+                    new Error(
+                        "Teams.BlendedGeneration.DeserializationFailed",
+                        $"Failed to parse AI Service response: {jsonEx.Message}",
+                        ErrorType.Failure
+                    )
+                );
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return Result.Failure<AiServiceResponse>(
+                new Error(
+                    "Teams.BlendedGeneration.Canceled",
+                    "The operation was canceled",
+                    ErrorType.Failure
+                )
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Unexpected error while generating blended team: {Message}",
+                ex.Message
+            );
+            return Result.Failure<AiServiceResponse>(
+                new Error(
+                    "Teams.BlendedGeneration.Failed",
+                    $"Unexpected exception: {ex.Message}",
+                    ErrorType.Failure
+                )
+            );
+        }
+    }
+
     public async Task<Result<TeamResponse>> CreateTeam(
         CreateTeamCommand command,
         CancellationToken cancellationToken
@@ -292,6 +486,7 @@ public class TeamService : ITeamService
                 WeightCriteria = JsonSerializer.Serialize(command.Weights, _jsonOptions),
                 CompatibilityScore = command.CompatibilityScore,
                 IsActive = true,
+                IsBlended = command.IsBlended,
             };
 
             foreach (string techName in command.RequiredTechnologies.Distinct())
@@ -333,6 +528,7 @@ public class TeamService : ITeamService
                 Name = team.Name,
                 CreatorId = team.CreatorId,
                 CompatibilityScore = team.CompatibilityScore,
+                IsBlended = team.IsBlended,
                 Members = team
                     .Members.Select(m =>
                     {
@@ -829,6 +1025,7 @@ public class TeamService : ITeamService
                 Name = team.Name,
                 CreatorId = team.CreatorId,
                 CompatibilityScore = team.CompatibilityScore,
+                IsBlended = team.IsBlended,
                 Members = team
                     .Members.Select(m => new TeamMemberDto(
                         m.EmployeeProfileId,

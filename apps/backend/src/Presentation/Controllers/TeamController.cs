@@ -2,6 +2,7 @@
 using Application.Commands.Teams.AddTeamMember;
 using Application.Commands.Teams.Create;
 using Application.Commands.Teams.Delete;
+using Application.Commands.Teams.GenerateBlendedTeam;
 using Application.Commands.Teams.GenerateTeams;
 using Application.Commands.Teams.MoveTeamMember;
 using Application.Commands.Teams.RemoveTeamMember;
@@ -100,6 +101,25 @@ public sealed class TeamsController : ControllerBase
         return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
+    [HttpPost("generate-blended")]
+    [Authorize(Roles = "Manager")]
+    public async Task<IResult> GenerateBlendedTeam([FromBody] GenerateBlendedTeamRequest request)
+    {
+        Guid currentUserId = GetCurrentUserId();
+
+        var command = new GenerateBlendedTeamCommand(
+            currentUserId,
+            request.TeamSize,
+            request.Technologies,
+            request.ProjectComplexity,
+            request.SfiaLevel,
+            request.Weights
+        );
+
+        Result<AiServiceResponse> result = await _sender.Send(command);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
     [HttpPost("create")]
     [Authorize(Roles = "Manager")]
     public async Task<IResult> CreateTeam([FromBody] CreateTeamsRequest request)
@@ -114,7 +134,8 @@ public sealed class TeamsController : ControllerBase
             request.Analysis,
             request.CompatibilityScore,
             request.Weights,
-            request.RequiredTechnologies
+            request.RequiredTechnologies,
+            request.IsBlended
         );
 
         Result<TeamResponse> result = await _sender.Send(command);

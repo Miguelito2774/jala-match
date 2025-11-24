@@ -243,42 +243,93 @@ class TeamDatabaseService:
         # Privacy filter - only include employees who consent to team matching
         privacy_filter = self._get_privacy_filter()
 
-        sql = f"""
-        SELECT
-            ep.id AS employee_id,
-            ep.first_name || ' ' || ep.last_name AS name,
-            sr.name AS role,
-            ta.name AS technical_area,
-            ep.sfia_level_general AS sfia_level,
-            ep.mbti,
-            ep.timezone,
-            ep.country,
-            ep.availability,
-            (
-                SELECT jsonb_agg(DISTINCT tech.name)
-                FROM public.employee_technologies et
-                JOIN public.technologies tech ON tech.id = et.technology_id
-                WHERE et.employee_profile_id = ep.id
-            ) AS technologies,
-            (
-                SELECT jsonb_agg(DISTINCT pi.name)
-                FROM public.personal_interests pi
-                WHERE pi.employee_profile_id = ep.id
-            ) AS interests
-        FROM public.employee_profiles ep
-        LEFT JOIN public.employee_specialized_roles esr ON esr.employee_profile_id = ep.id
-        LEFT JOIN public.specialized_roles sr ON sr.id = esr.specialized_role_id
-        LEFT JOIN public.technical_areas ta ON ta.id = sr.technical_area_id
-        WHERE 1=1
-          {avail_filter}
-          {sfia_filter}
-          {verification_filter}
-          {req_filter}
-          {tech_filter}
-          {privacy_filter}
-        ORDER BY ep.sfia_level_general DESC
-        LIMIT 20;
-        """
+        # Si no hay requirements (modo blended), usamos una query simplificada
+        if not req_filter:
+            sql = f"""
+            SELECT DISTINCT
+                ep.id AS employee_id,
+                ep.first_name || ' ' || ep.last_name AS name,
+                COALESCE(
+                    (SELECT sr.name 
+                     FROM public.employee_specialized_roles esr 
+                     JOIN public.specialized_roles sr ON sr.id = esr.specialized_role_id 
+                     WHERE esr.employee_profile_id = ep.id 
+                     LIMIT 1), 
+                    'General'
+                ) AS role,
+                COALESCE(
+                    (SELECT ta.name 
+                     FROM public.employee_specialized_roles esr 
+                     JOIN public.specialized_roles sr ON sr.id = esr.specialized_role_id 
+                     JOIN public.technical_areas ta ON ta.id = sr.technical_area_id 
+                     WHERE esr.employee_profile_id = ep.id 
+                     LIMIT 1), 
+                    'General'
+                ) AS technical_area,
+                ep.sfia_level_general AS sfia_level,
+                ep.mbti,
+                ep.timezone,
+                ep.country,
+                ep.availability,
+                (
+                    SELECT jsonb_agg(DISTINCT tech.name)
+                    FROM public.employee_technologies et
+                    JOIN public.technologies tech ON tech.id = et.technology_id
+                    WHERE et.employee_profile_id = ep.id
+                ) AS technologies,
+                (
+                    SELECT jsonb_agg(DISTINCT pi.name)
+                    FROM public.personal_interests pi
+                    WHERE pi.employee_profile_id = ep.id
+                ) AS interests
+            FROM public.employee_profiles ep
+            WHERE 1=1
+              {avail_filter}
+              {sfia_filter}
+              {verification_filter}
+              {tech_filter}
+              {privacy_filter}
+            ORDER BY ep.sfia_level_general DESC
+            LIMIT 50;
+            """
+        else:
+            # Query original con filtros de roles específicos
+            sql = f"""
+            SELECT
+                ep.id AS employee_id,
+                ep.first_name || ' ' || ep.last_name AS name,
+                sr.name AS role,
+                ta.name AS technical_area,
+                ep.sfia_level_general AS sfia_level,
+                ep.mbti,
+                ep.timezone,
+                ep.country,
+                ep.availability,
+                (
+                    SELECT jsonb_agg(DISTINCT tech.name)
+                    FROM public.employee_technologies et
+                    JOIN public.technologies tech ON tech.id = et.technology_id
+                    WHERE et.employee_profile_id = ep.id
+                ) AS technologies,
+                (
+                    SELECT jsonb_agg(DISTINCT pi.name)
+                    FROM public.personal_interests pi
+                    WHERE pi.employee_profile_id = ep.id
+                ) AS interests
+            FROM public.employee_profiles ep
+            LEFT JOIN public.employee_specialized_roles esr ON esr.employee_profile_id = ep.id
+            LEFT JOIN public.specialized_roles sr ON sr.id = esr.specialized_role_id
+            LEFT JOIN public.technical_areas ta ON ta.id = sr.technical_area_id
+            WHERE 1=1
+              {avail_filter}
+              {sfia_filter}
+              {verification_filter}
+              {req_filter}
+              {tech_filter}
+              {privacy_filter}
+            ORDER BY ep.sfia_level_general DESC
+            LIMIT 20;
+            """
         try:
             rows = await self.db.fetch_all(sql)
             return [dict(r) for r in rows]

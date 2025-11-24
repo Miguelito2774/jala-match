@@ -46,6 +46,7 @@ export interface TeamBuilderFormData {
   creatorId: string;
   weights: TeamWeights;
   requiredTechnologies: string[];
+  isBlended?: boolean;
 }
 
 export const buildCreateTeamRequest = (
@@ -78,5 +79,6 @@ export const buildCreateTeamRequest = (
     compatibilityScore: aiResponse.compatibility_score,
     weights: teamBuilderData.weights,
     requiredTechnologies: teamBuilderData.requiredTechnologies,
+    isBlended: teamBuilderData.isBlended || false,
   };
 };

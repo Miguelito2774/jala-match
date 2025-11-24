@@ -28,9 +28,10 @@ async def ask_ia(prompt):
     client = MCPClient.from_dict(config)
 
     llm = ChatAnthropic(
-        model="claude-3-5-sonnet-latest",
+        model="claude-sonnet-4-5-20250929",  # Updated to Claude 4.5 Sonnet
         anthropic_api_key=os.getenv("CLAUDE_API_KEY"),
-        max_tokens_to_sample=4000, 
+        max_tokens_to_sample=4000,
+        temperature=0.2,  # Using only temperature (not top_p) as per Claude 4.5 requirements
     )
 
     agent = MCPAgent(llm=llm, client=client, max_steps=30)

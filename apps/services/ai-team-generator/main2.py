@@ -292,8 +292,9 @@ async def generate_teams(request: TeamGenerationRequest):
         ## �📝 FORMATO DE RESPUESTA - ¡Hazlo Súper Detallado y Amigable!
 
         Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura, pero llena cada campo con explicaciones LARGAS y DETALLADAS:
+        IMPORTANTE: Responde ÚNICAMENTE con JSON puro. NO uses bloques de código markdown (```json o ```). 
+        Tu respuesta debe empezar directamente con {{ y terminar con }}.
 
-        ```json
         {{
           "teams": [
             {{
@@ -311,75 +312,103 @@ async def generate_teams(request: TeamGenerationRequest):
           "recommended_leader": {{
             "id": "DEBE SER EL ID DE UNO DE LOS MIEMBROS DEL EQUIPO ARRIBA",
             "name": "DEBE SER EL NOMBRE DE UNO DE LOS MIEMBROS DEL EQUIPO ARRIBA",
-            "rationale": "🎯 EXPLICACIÓN SÚPER DETALLADA: Explica paso a paso por qué ESTA PERSONA DEL EQUIPO es el líder perfecto. IMPORTANTE: El líder DEBE ser uno de los miembros que ya incluiste en el equipo. NO inventes un líder nuevo. Selecciona el mejor líder de entre los miembros del equipo y explica por qué."
+            "rationale": "🎯 Explica en 2-3 párrafos por qué ESTA PERSONA DEL EQUIPO es el líder perfecto. IMPORTANTE: El líder DEBE ser uno de los miembros que ya incluiste en el equipo."
           }},
           "team_analysis": {{
             "strengths": [
-              "💪 FORTALEZA TÉCNICA DETALLADA: Explica en 3-4 oraciones completas cómo las habilidades técnicas del equipo son perfectas para el proyecto. Menciona tecnologías específicas, niveles SFIA de cada miembro y qué significa eso en la práctica diaria. Explica cómo los pesos de criterios (ej: {request.weights.technical_weight}% técnico) influyeron en elegir estas personas.",
-              "🧠 FORTALEZA DE COMPETENCIAS SFIA EXPLICADA: Describe en detalle qué nivel SFIA tiene cada miembro y qué significa eso en términos que cualquiera entienda. Por ejemplo: 'María tiene SFIA 3, lo que significa que puede trabajar sola pero pregunta cuando tiene dudas, perfecto para un rol Junior. Juan tiene SFIA 5, lo que significa que puede liderar técnicamente y enseñar a otros.' NO asumas que SFIA = senioridad laboral.",
-              "🤝 FORTALEZA DE PERSONALIDADES COMPLEMENTARIAS: Explica en detalle cómo cada personalidad MBTI aporta algo único y cómo se complementan. Por ejemplo: 'Ana (ENTP) aporta innovación y encuentra soluciones creativas cuando hay problemas, Pedro (INFP) mantiene la armonía cuando hay tensiones, y Luis (ISTJ) asegura que todo se haga con calidad y procesos correctos. Juntos forman un equilibrio perfecto entre creatividad, armonía y estructura.'"
+              "💪 FORTALEZA TÉCNICA: Explica cómo las habilidades técnicas del equipo son perfectas para el proyecto. Menciona tecnologías específicas y niveles SFIA.",
+              "🧠 FORTALEZA DE COMPETENCIAS SFIA: Describe qué nivel SFIA tiene cada miembro y qué significa eso en la práctica. NO asumas que SFIA = senioridad laboral.",
+              "🤝 FORTALEZA DE PERSONALIDADES: Explica cómo cada personalidad MBTI aporta algo único y cómo se complementan."
             ],
             "weaknesses": [
-              "⚠️ DEBILIDAD ESPECÍFICA EXPLICADA: Identifica una limitación real del equipo y explica por qué podría ser problemática. Usa ejemplos concretos.",
-              "🔧 RIESGO TECNOLÓGICO DETALLADO: Explica si hay dependencia excesiva en ciertas tecnologías, falta de diversidad técnica, o algún gap tecnológico importante. Da ejemplos específicos.",
-              "📊 RIESGO OPERACIONAL EXPLICADO: Analiza factores como distribución de carga de trabajo, zonas horarias, posibles cuellos de botella, o conflictos de personalidad que podrían surgir."
+              "⚠️ DEBILIDAD ESPECÍFICA: Identifica una limitación real del equipo con ejemplos concretos.",
+              "🔧 RIESGO TECNOLÓGICO: Explica gaps tecnológicos o dependencias problemáticas.",
+              "📊 RIESGO OPERACIONAL: Analiza factores como zonas horarias, cuellos de botella, o conflictos potenciales."
             ],
-            "compatibility": "🎯 ANÁLISIS INTEGRAL SÚPER DETALLADO (mínimo 200 palabras): Este debe ser un análisis completo que incluya: 1) Explicación específica de cómo CADA peso de criterio ({request.weights.sfia_weight}% SFIA, {request.weights.technical_weight}% técnico, {request.weights.psychological_weight}% psicológico, etc.) influyó en la selección del equipo - da ejemplos concretos, 2) Descripción clara de qué significa cada nivel SFIA presente en el equipo y sus implicaciones para el trabajo diario (ej: 'SFIA 3 significa que puede hacer tareas complejas solo pero necesita guidance ocasional'), 3) Análisis detallado de cada personalidad MBTI del equipo y cómo contribuye específicamente al éxito - explica las sinergias entre personalidades con ejemplos, 4) Evaluación de la alineación con los niveles solicitados ({[req.level for req in request.requirements]}) explicando por qué los niveles SFIA seleccionados son apropiados SIN asumir que equivalen a senioridad laboral"
+            "compatibility": "🎯 ANÁLISIS INTEGRAL (100-150 palabras): Explica cómo cada peso de criterio ({request.weights.sfia_weight}% SFIA, {request.weights.technical_weight}% técnico, etc.) influyó en la selección, qué significa cada nivel SFIA, y cómo las personalidades MBTI se complementan."
           }},
           "compatibility_score": 87,
           "recommended_Members": [
-            {{
-              "id": "id-real-del-candidato-alternativo",
-              "name": "Nombre del Candidato",
-              "compatibility_score": 78,
-              "analysis": "🔍 ANÁLISIS DETALLADO DEL CANDIDATO (mínimo 100 palabras): Explica paso a paso por qué este candidato sería genial para el equipo: 1) Su nivel SFIA específico y qué significa en términos simples para el trabajo diario, 2) Su personalidad MBTI y cómo complementaría específicamente a las personalidades ya en el equipo (da ejemplos de interacciones), 3) Sus fortalezas técnicas únicas y cómo llenarían gaps, 4) Por qué no fue seleccionado para el equipo principal pero sigue siendo valioso",
-              "potential_conflicts": [
-                "⚡ CONFLICTO POTENCIAL ESPECÍFICO: Describe exactamente qué tipo de fricción podría surgir y por qué. Por ejemplo: 'Su personalidad INTJ (planificador estructurado) podría chocar con el estilo más espontáneo del equipo actual, especialmente con Juan (ENFP) que prefiere improvisar.'",
-                "⚡ RIESGO OPERACIONAL ESPECÍFICO: Identifica otro riesgo concreto con ejemplos. Por ejemplo: 'Está en zona horaria diferente (GMT-3 vs GMT-5 del resto del equipo), lo que podría dificultar las reuniones diarias.'"
-              ],
-              "team_impact": "📈 IMPACTO DETALLADO EN EL EQUIPO (mínimo 100 palabras): Explica específicamente cómo este miembro cambiaría la dinámica del equipo: 1) Cómo su personalidad MBTI específica afectaría las interacciones diarias del equipo con ejemplos concretos, 2) Qué nuevas capacidades técnicas aportaría y cómo eso beneficiaría al proyecto, 3) Cómo su nivel SFIA se integraría con la estructura existente del equipo, 4) Qué beneficios específicos y qué desafíos de gestión traería al equipo"
-            }}
+            {{ 
+              "id": "id-candidato-1", 
+              "name": "Nombre 1", 
+              "compatibility_score": 85, 
+              "analysis": "2-3 oraciones: nivel SFIA, stack técnico clave, personalidad MBTI y por qué no fue seleccionado.", 
+              "potential_conflicts": ["Conflicto 1 en 1 oración", "Conflicto 2 en 1 oración"], 
+              "team_impact": "2-3 oraciones sobre impacto técnico y de personalidad en el equipo." 
+            }},
+            {{ "id": "id-candidato-2", "name": "Nombre 2", "compatibility_score": 82, "analysis": "2-3 oraciones", "potential_conflicts": ["Conflicto 1", "Conflicto 2"], "team_impact": "2-3 oraciones" }},
+            {{ "id": "id-candidato-3", "name": "Nombre 3", "compatibility_score": 78, "analysis": "2-3 oraciones", "potential_conflicts": ["Conflicto 1", "Conflicto 2"], "team_impact": "2-3 oraciones" }}
           ]
         }}
-        ```
 
-        ## 🎯 REGLAS FINALES SÚPER IMPORTANTES:
+        IMPORTANTE: 
+        - Incluye exactamente 3 candidatos en recommended_Members, no más.
+        - Cada análisis debe ser BREVE: máximo 2-3 oraciones concisas
+        - Cada conflicto: máximo 1 oración
+        - Cada impacto: máximo 2-3 oraciones
 
-        1. **Tu respuesta debe ser ÚNICAMENTE el objeto JSON válido** - sin texto antes o después
-        2. **Cada explicación debe ser LARGA y DETALLADA** - mínimo 2-3 oraciones por fortaleza/debilidad
-        3. **Usa EJEMPLOS ESPECÍFICOS** - no digas "buen comunicador", di "puede explicar conceptos técnicos complejos de manera simple"
-        4. **Explica TODOS los acrónimos y términos técnicos** - como si le hablaras a alguien que no sabe nada de tech
-        5. **Usa EXACTAMENTE los IDs de empleados** que están en los datos proporcionados
-        6. **Genera un GUID aleatorio válido** para el team_id (formato: 12345678-1234-1234-1234-123456789012)
-        7. **TODO en español** y con un tono amigable y explicativo
-        8. **JAMÁS inventes empleados** - solo usa los que están en los datos JSON
-        9. **🚨 CRÍTICO: El recommended_leader DEBE ser uno de los miembros del equipo** - NO inventes un líder nuevo
+        ## 🎯 REGLAS FINALES:
 
-        ## 💡 RECUERDA: 
-        Tu objetivo es que cualquier manager, sin importar su nivel técnico, pueda leer tu respuesta y entender PERFECTAMENTE:
-        - Por qué elegiste a cada persona
-        - Qué significa cada nivel SFIA en términos prácticos  
-        - Cómo las personalidades se van a complementar en el día a día
-        - **🎯 SÚPER IMPORTANTE: Por qué seleccionaste a ESE MIEMBRO DEL EQUIPO como líder**
-        - Qué fortalezas y debilidades reales tiene el equipo
-        - Por qué respetaste los pesos de criterios que te dieron
+        1. **Tu respuesta debe ser ÚNICAMENTE el objeto JSON válido** - sin bloques markdown ```json
+        2. **Sé BREVE y conciso** - máximo 2-3 oraciones por campo en recommended_Members
+        3. **Usa EJEMPLOS ESPECÍFICOS** - no digas "buen comunicador", di "puede explicar conceptos técnicos complejos"
+        4. **Usa EXACTAMENTE los IDs de empleados** que están en los datos proporcionados
+        5. **Genera un GUID aleatorio válido** para el team_id
+        6. **TODO en español** con tono amigable
+        7. **🚨 CRÍTICO: El recommended_leader DEBE ser uno de los miembros del equipo**
+        8. **SOLO 3 candidatos en recommended_Members**
 
-        ¡Hazlo súper detallado y amigable! 🚀
+        Responde en JSON puro, SIN bloques markdown. Empieza tu respuesta directamente con {{
+
         """
 
         response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=6000,
-            temperature=0.2,
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=6000,  # Reduced further with briefer recommended_Members
+            temperature=0.3,  # Slightly higher for faster generation
             messages=[{"role": "user", "content": prompt}],
         )
+
+        # Handle Claude 4.5 specific stop reasons
+        if response.stop_reason == "refusal":
+            print(f"⚠️ CLAUDE REFUSED REQUEST: {response.content[0].text if response.content else 'No content'}")
+            raise HTTPException(
+                status_code=400, 
+                detail="La IA rechazó procesar esta solicitud. Por favor revise los criterios e intente nuevamente."
+            )
+        
+        if response.stop_reason == "model_context_window_exceeded":
+            print(f"⚠️ CONTEXT WINDOW EXCEEDED")
+            raise HTTPException(
+                status_code=400,
+                detail="La solicitud excede el contexto máximo. Intente con menos candidatos o criterios más simples."
+            )
+        
+        # Check if response was cut off due to max_tokens
+        if response.stop_reason == "max_tokens":
+            print(f"⚠️ RESPONSE TRUNCATED - Claude reached max_tokens limit")
+            raise HTTPException(
+                status_code=500,
+                detail="La respuesta de la IA fue truncada. Intente con un equipo más pequeño o contacte soporte."
+            )
 
         try:
             # Log the raw response from Claude
             raw_response = response.content[0].text
-            print(f"🤖 RAW CLAUDE RESPONSE: {raw_response}")
+            print(f"🤖 RAW CLAUDE RESPONSE: {raw_response[:500]}...")  # Only print first 500 chars
             
-            team_formation_result = json.loads(raw_response)
+            # Clean markdown code blocks from Claude's response
+            cleaned_response = raw_response.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            elif cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            cleaned_response = cleaned_response.strip()
+            
+            team_formation_result = json.loads(cleaned_response)
             
             # Log the parsed JSON to see structure
             print(f"📋 PARSED JSON KEYS: {list(team_formation_result.keys())}")
@@ -479,9 +508,8 @@ async def find_team_members(request: FindTeamMemberRequest):
         - Da mayor peso a candidatos con experiencia en las tecnologías específicamente solicitadas
 
         ## Formato de Respuesta Requerido
-        Responde EXCLUSIVAMENTE con un array JSON con la siguiente estructura exacta, sin texto adicional:
+        Responde EXCLUSIVAMENTE con un array JSON con la siguiente estructura exacta, sin texto adicional, tampoco bloques de código markdown o (```json```):
 
-        ```json
         [
           {{
             "employee_id": "guid-real-del-empleado",
@@ -494,7 +522,6 @@ async def find_team_members(request: FindTeamMemberRequest):
             "analysis": "Análisis detallado de por qué este candidato sería una buena adición al equipo."
           }}
         ]
-        ```
         
         IMPORTANTE:
         1. Tu respuesta debe ser EXACTAMENTE 5 candidatos en un array JSON
@@ -507,14 +534,39 @@ async def find_team_members(request: FindTeamMemberRequest):
         """
 
         response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=4000,
-            temperature=0.2,
+            temperature=0.2,  # Using only temperature (not top_p) as per Claude 4.5 requirements
             messages=[{"role": "user", "content": prompt}],
         )
 
+        # Handle Claude 4.5 specific stop reasons
+        if response.stop_reason == "refusal":
+            print(f"⚠️ CLAUDE REFUSED REQUEST: {response.content[0].text if response.content else 'No content'}")
+            raise HTTPException(
+                status_code=400,
+                detail="La IA rechazó procesar esta solicitud de búsqueda de candidatos."
+            )
+        
+        if response.stop_reason == "model_context_window_exceeded":
+            raise HTTPException(
+                status_code=400,
+                detail="Demasiados candidatos para analizar. Intente con filtros más restrictivos."
+            )
+
         try:
-            recommendations = json.loads(response.content[0].text)
+            # Clean markdown code blocks from Claude's response
+            raw_response = response.content[0].text
+            cleaned_response = raw_response.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            elif cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            cleaned_response = cleaned_response.strip()
+            
+            recommendations = json.loads(cleaned_response)
             return recommendations
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al analizar recomendaciones de candidatos: {str(e)}")
@@ -569,13 +621,38 @@ async def reanalyze_team(request: TeamReanalysisRequest):
         """
         
         response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-5-20250929",  # Updated to Claude 4.5
             max_tokens=3000,
-            temperature=0.1,
+            temperature=0.1,  # Using only temperature (not top_p) as per Claude 4.5 requirements
             messages=[{"role": "user", "content": prompt}]
         )
         
-        return json.loads(response.content[0].text)
+        # Handle Claude 4.5 specific stop reasons
+        if response.stop_reason == "refusal":
+            print(f"⚠️ CLAUDE REFUSED REANALYSIS REQUEST")
+            raise HTTPException(
+                status_code=400,
+                detail="La IA rechazó re-analizar este equipo."
+            )
+        
+        if response.stop_reason == "model_context_window_exceeded":
+            raise HTTPException(
+                status_code=400,
+                detail="El equipo es demasiado grande para re-analizar."
+            )
+        
+        # Clean markdown code blocks from Claude's response
+        raw_response = response.content[0].text
+        cleaned_response = raw_response.strip()
+        if cleaned_response.startswith("```json"):
+            cleaned_response = cleaned_response[7:]
+        elif cleaned_response.startswith("```"):
+            cleaned_response = cleaned_response[3:]
+        if cleaned_response.endswith("```"):
+            cleaned_response = cleaned_response[:-3]
+        cleaned_response = cleaned_response.strip()
+        
+        return json.loads(cleaned_response)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

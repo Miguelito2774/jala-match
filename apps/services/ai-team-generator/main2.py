@@ -365,7 +365,7 @@ async def generate_teams(request: TeamGenerationRequest):
 
         response = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=6000,  # Reduced further with briefer recommended_Members
+            max_tokens=8000,  # Increased to prevent truncation
             temperature=0.3,  # Slightly higher for faster generation
             messages=[{"role": "user", "content": prompt}],
         )
@@ -385,13 +385,17 @@ async def generate_teams(request: TeamGenerationRequest):
                 detail="La solicitud excede el contexto máximo. Intente con menos candidatos o criterios más simples."
             )
         
+        # Log stop_reason for debugging
+        print(f"🔍 CLAUDE STOP REASON: {response.stop_reason}")
+        
         # Check if response was cut off due to max_tokens
         if response.stop_reason == "max_tokens":
-            print(f"⚠️ RESPONSE TRUNCATED - Claude reached max_tokens limit")
+            print(f"⚠️ RESPONSE TRUNCATED - Claude reached max_tokens limit of 6000")
             raise HTTPException(
                 status_code=500,
                 detail="La respuesta de la IA fue truncada. Intente con un equipo más pequeño o contacte soporte."
             )
+
 
         try:
             # Log the raw response from Claude

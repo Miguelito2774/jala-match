@@ -24,6 +24,16 @@ interface SelectOption {
   label: string;
 }
 
+const LOADING_MESSAGES = [
+  'Analizando perfiles disponibles...',
+  'Evaluando compatibilidad técnica...',
+  'Calculando niveles SFIA...',
+  'Ponderando criterios de preferencia...',
+  'Optimizando composición del equipo...',
+  'Revisando zonas horarias y disponibilidad...',
+  'Casi listo, refinando resultados...',
+];
+
 export const TeamBuilder = () => {
   const { roles, loading: loadingRoles } = useRoles();
   const { technologies, loading: loadingTech } = useTechnologies();
@@ -50,9 +60,33 @@ export const TeamBuilder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([]);
   const [availableTechOptions, setAvailableTechOptions] = useState<SelectOption[]>([]);
-  const { user } = useAuth();
 
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  const { user } = useAuth();
   const creatorId = user!.id;
+
+  useEffect(() => {
+    if (!generatingTeam) {
+      setLoadingMessageIndex(0);
+      setProgress(0);
+      return;
+    }
+
+    const messageInterval = setInterval(() => {
+      setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 12000);
+
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => (prev < 92 ? prev + 1 : prev));
+    }, 1000);
+
+    return () => {
+      clearInterval(messageInterval);
+      clearInterval(progressInterval);
+    };
+  }, [generatingTeam]);
 
   useEffect(() => {
     if (criteria.length > 0) {
@@ -171,16 +205,12 @@ export const TeamBuilder = () => {
 
   const handleTechSelectionChange = (selected: SelectOption | SelectOption[] | null) => {
     const selectedOptions = Array.isArray(selected) ? selected : selected ? [selected] : [];
-
     const techNames = selectedOptions.map((option) => option.value.toString());
-
     setSelectedTechnologies(techNames);
   };
 
   const handleGenerateTeams = async () => {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
 
     const params = {
       CreatorId: creatorId,
@@ -231,6 +261,28 @@ export const TeamBuilder = () => {
       <div className="flex items-center justify-center p-8">
         <Loader2 className="text-secondary h-8 w-8 animate-spin" />
         <span className="ml-2 text-gray-600">Cargando configuración...</span>
+      </div>
+    );
+  }
+
+  if (generatingTeam) {
+    return (
+      <div className="flex min-h-[420px] flex-col items-center justify-center rounded-lg bg-white p-10 shadow">
+        <Loader2 className="text-secondary mb-6 h-14 w-14 animate-spin" />
+
+        <h2 className="mb-2 text-xl font-semibold text-gray-800">Generando tu equipo con IA</h2>
+        <p className="mb-8 text-sm text-gray-500">Este proceso puede tardar alrededor de un minuto y medio.</p>
+
+        <div className="mb-4 w-full max-w-md overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-2 rounded-full bg-blue-600 transition-all duration-1000 ease-linear"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="mt-2 min-h-[24px] text-center text-sm font-medium text-blue-700">
+          {LOADING_MESSAGES[loadingMessageIndex]}
+        </p>
       </div>
     );
   }
@@ -304,6 +356,7 @@ export const TeamBuilder = () => {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Nivel SFIA Mínimo</label>
                 <Select
@@ -332,6 +385,7 @@ export const TeamBuilder = () => {
               </div>
             </div>
           </div>
+
           <div className="border-t border-gray-200 pt-6">
             <h2 className="mb-4 text-lg font-medium text-gray-900">
               Especialidades Requeridas
@@ -406,6 +460,7 @@ export const TeamBuilder = () => {
               })}
             </div>
           </div>
+
           <Button
             onClick={handleGenerateTeams}
             className="flex items-center bg-blue-600 hover:bg-blue-700"

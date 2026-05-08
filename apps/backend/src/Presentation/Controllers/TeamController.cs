@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Application.Commands.Teams.AddTeamMember;
 using Application.Commands.Teams.Create;
 using Application.Commands.Teams.Delete;
@@ -356,6 +356,52 @@ public sealed class TeamsController : ControllerBase
         Result<List<EmployeeTeamResponse>> result = await _sender.Send(query);
 
         return result.Match(teams => Results.Ok(teams), CustomResults.Problem);
+    }
+
+    // ─── Psychologist Review Endpoints ──────────────────────────────────────────────
+
+    [HttpPost("{id}/request-review")]
+    [Authorize(Roles = "Manager")]
+    public async Task<IResult> RequestPsychologistReview(Guid id)
+    {
+        Guid currentUserId = GetCurrentUserId();
+        var command = new Application.Commands.Teams.RequestPsychologistReview.RequestPsychologistReviewCommand(id, currentUserId);
+        Result<TeamResponse> result = await _sender.Send(command);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpPost("{id}/reviews")]
+    [Authorize(Roles = "Psychologist")]
+    public async Task<IResult> SubmitPsychologistReview(Guid id, [FromBody] SubmitPsychologistReviewRequest request)
+    {
+        Guid currentUserId = GetCurrentUserId();
+        var command = new Application.Commands.Teams.SubmitPsychologistReview.SubmitPsychologistReviewCommand(
+            id,
+            currentUserId,
+            request.Comment,
+            request.Status
+        );
+        Result<PsychologistReviewDto> result = await _sender.Send(command);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpGet("pending-review")]
+    [Authorize(Roles = "Psychologist")]
+    public async Task<IResult> GetTeamsPendingReview()
+    {
+        Guid currentUserId = GetCurrentUserId();
+        var query = new Application.Queries.Teams.GetTeamsPendingReview.GetTeamsPendingReviewQuery(currentUserId);
+        Result<List<TeamWithReviewStatusResponse>> result = await _sender.Send(query);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
+    }
+
+    [HttpGet("{id}/reviews")]
+    [Authorize(Roles = "Manager,Psychologist")]
+    public async Task<IResult> GetTeamReviews(Guid id)
+    {
+        var query = new Application.Queries.Teams.GetTeamReviews.GetTeamReviewsQuery(id);
+        Result<List<PsychologistReviewDto>> result = await _sender.Send(query);
+        return result.Match(Results.Ok, error => CustomResults.Problem(error));
     }
 
     private Guid GetCurrentUserId()

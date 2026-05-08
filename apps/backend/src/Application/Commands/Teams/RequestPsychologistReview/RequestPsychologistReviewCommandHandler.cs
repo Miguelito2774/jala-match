@@ -1,0 +1,80 @@
+using System.Text.Json;
+using Application.Abstractions.Messaging;
+using Application.Abstractions.Repositories;
+using Application.DTOs;
+using Domain.Entities.Teams;
+using SharedKernel.Errors;
+using SharedKernel.Results;
+
+namespace Application.Commands.Teams.RequestPsychologistReview;
+
+internal sealed class RequestPsychologistReviewCommandHandler
+    : ICommandHandler<RequestPsychologistReviewCommand, TeamResponse>
+{
+    private readonly ITeamRepository _teamRepository;
+
+    public RequestPsychologistReviewCommandHandler(ITeamRepository teamRepository)
+    {
+        _teamRepository = teamRepository;
+    }
+
+    public async Task<Result<TeamResponse>> Handle(
+        RequestPsychologistReviewCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        Team? team = await _teamRepository.GetByIdAsync(command.TeamId, cancellationToken);
+
+        if (team is null)
+        {
+            return Result.Failure<TeamResponse>(
+                new Error("Team.NotFound", "Equipo no encontrado", ErrorType.Failure)
+            );
+        }
+
+        if (team.CreatorId != command.RequestedByUserId)
+        {
+            return Result.Failure<TeamResponse>(
+                new Error(
+                    "Team.Forbidden",
+                    "Solo el creador del equipo puede solicitar la revisión psicológica",
+                    ErrorType.Forbidden
+                )
+            );
+        }
+
+        team.PsychologistReviewRequested = true;
+
+        await _teamRepository.UpdateAsync(team, cancellationToken);
+        await _teamRepository.SaveChangesAsync(cancellationToken);
+
+        var response = new TeamResponse
+        {
+            TeamId = team.Id,
+            Name = team.Name,
+            CreatorId = team.CreatorId,
+            CompatibilityScore = team.CompatibilityScore,
+            Members = team.Members
+                .Select(m => new TeamMemberDto(
+                    m.EmployeeProfileId,
+                    m.Name,
+                    m.Role,
+                    m.SfiaLevel,
+                    m.IsLeader,
+                    null
+                ))
+                .ToList(),
+            RequiredTechnologies = team.RequiredTechnologies.Select(rt => rt.Technology.Name).ToList(),
+            Analysis = team.AiAnalysis != null
+                ? JsonSerializer.Deserialize<AiTeamAnalysis>(team.AiAnalysis)
+                : null,
+            Weights = team.WeightCriteria != null
+                ? JsonSerializer.Deserialize<WeightCriteria>(team.WeightCriteria)
+                : null,
+            IsActive = team.IsActive,
+            PsychologistReviewRequested = team.PsychologistReviewRequested,
+        };
+
+        return Result.Success(response);
+    }
+}

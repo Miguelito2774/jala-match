@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
-import { HelpCircle, LogOut, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
+import { Brain, HelpCircle, LogOut, Menu, Settings, Shield, UserCircle, Users, Wrench, X } from 'lucide-react';
 
 import { SidebarItem } from './SidebarItem';
 
@@ -16,7 +16,7 @@ interface NavItem {
   href: string;
   icon: typeof Users;
   label: string;
-  roles: ('Employee' | 'Manager' | 'Admin')[];
+  roles: ('Employee' | 'Manager' | 'Admin' | 'Psychologist')[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -64,6 +64,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: UserCircle,
     label: 'Verificar Perfiles',
     roles: ['Manager'],
+  },
+
+  // Rutas de psychologist
+  {
+    href: '/psychologist/teams',
+    icon: Brain,
+    label: 'Equipos Pendientes',
+    roles: ['Psychologist'],
   },
 
   // Rutas de admin

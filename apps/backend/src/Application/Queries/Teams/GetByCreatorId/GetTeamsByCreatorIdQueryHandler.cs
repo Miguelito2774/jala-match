@@ -59,6 +59,7 @@ internal sealed class GetTeamsByCreatorIdQueryHandler
                         ? JsonSerializer.Deserialize<WeightCriteria>(team.WeightCriteria)
                         : null,
                 IsActive = team.IsActive,
+                PsychologistReviewRequested = team.PsychologistReviewRequested,
             })
             .ToList();
 

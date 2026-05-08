@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "scripts": {
-    "dev": "dotnet watch --project ./src/Presentation run",
+    "dev": "DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet watch --project ./src/Presentation run",
     "restore": "dotnet restore",
     "build": "dotnet build --configuration Release --no-restore",
     "migrate:add": "dotnet ef migrations --project ./src/Infrastructure/ --startup-project ./src/Presentation/ add"

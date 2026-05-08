@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PROTECTED_ROUTES = ['/profile', '/teams', '/team-builder', '/admin', '/settings'];
+const PROTECTED_ROUTES = ['/profile', '/teams', '/team-builder', '/admin', '/settings', '/psychologist'];
 const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
 const ROLE_ROUTES = {
   Employee: ['/profile', '/teams'],
   Manager: ['/team-builder', '/teams'],
+  Psychologist: ['/psychologist'],
   Admin: ['/admin'],
 };
 
@@ -82,6 +83,8 @@ function getDashboardForRole(role: string): string {
       return '/employee/profile';
     case 'Manager':
       return '/teams';
+    case 'Psychologist':
+      return '/psychologist/teams';
     case 'Admin':
       return '/admin/dashboard';
     default:

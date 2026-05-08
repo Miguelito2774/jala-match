@@ -21,6 +21,7 @@ public sealed class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Technology> Technologies => Set<Technology>();
     public DbSet<EmployeeTechnology> EmployeeTechnologies => Set<EmployeeTechnology>();
     public DbSet<Team> Teams => Set<Team>();
+    public DbSet<PsychologistReview> PsychologistReviews => Set<PsychologistReview>();
     public DbSet<ProfileVerification> ProfileVerifications => Set<ProfileVerification>();
     public DbSet<WorkExperience> WorkExperiences => Set<WorkExperience>();
     public DbSet<PersonalInterest> PersonalInterests => Set<PersonalInterest>();

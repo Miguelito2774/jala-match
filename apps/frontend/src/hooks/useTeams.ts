@@ -38,6 +38,7 @@ export interface Team {
   weights: TeamWeights;
   createdAt: string;
   isActive: boolean;
+  psychologistReviewRequested: boolean;
 }
 
 export interface CreateTeamRequest {

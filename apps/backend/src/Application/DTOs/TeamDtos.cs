@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Domain.Entities.Enums;
 using Domain.Entities.Teams;
 using Domain.Entities.Technologies;
@@ -126,6 +126,7 @@ public class TeamResponse
 
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
+    public bool PsychologistReviewRequested { get; set; }
 }
 
 
@@ -289,4 +290,31 @@ public class TeammateLanguageDto
 {
     public string Language { get; set; } = string.Empty;
     public string Proficiency { get; set; } = string.Empty;
+}
+
+// ─── Psychologist Review DTOs ──────────────────────────────────────────────
+
+public class PsychologistReviewDto
+{
+    public Guid ReviewId { get; set; }
+    public Guid TeamId { get; set; }
+    public Guid PsychologistId { get; set; }
+    public string PsychologistEmail { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;   // "Pending" | "Approved" | "FlaggedConcerns"
+    public DateTime? ReviewedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SubmitPsychologistReviewRequest
+{
+    public string Comment { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;   // "Approved" | "FlaggedConcerns"
+}
+
+public class TeamWithReviewStatusResponse
+{
+    public TeamResponse Team { get; set; } = null!;
+    public bool PsychologistReviewRequested { get; set; }
+    public PsychologistReviewDto? LatestReview { get; set; }
 }

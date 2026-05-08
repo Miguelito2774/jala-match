@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePsychologistReview } from '@/hooks/usePsychologistReview';
 import { useTeamMemberActions } from '@/hooks/useTeamMemberActions';
 import { Team, TeamMember, useTeams } from '@/hooks/useTeams';
 
@@ -34,6 +35,8 @@ import {
   AlertCircle,
   ArrowLeft,
   BarChart,
+  Brain,
+  BrainCircuit,
   CheckCircle,
   Code,
   Crown,
@@ -65,6 +68,7 @@ export default function TeamPage({ params }: TeamPageProps) {
     handleMoveMember,
     getAvailableTeamsForMove,
   } = useTeamMemberActions(team);
+  const { requestReview, loading: reviewLoading } = usePsychologistReview();
   const unwrappedParams = React.use(params);
   const { teamId } = unwrappedParams;
 
@@ -111,6 +115,22 @@ export default function TeamPage({ params }: TeamPageProps) {
         router.push('/teams');
       } else {
         toast.error('No se pudo eliminar el equipo. Por favor, inténtalo de nuevo.');
+      }
+    }
+  };
+
+  const handleRequestReview = async () => {
+    if (team) {
+      const success = await requestReview(team.teamId);
+      if (success) {
+        toast.success('Revisión solicitada', {
+          description: 'Se ha enviado la solicitud de revisión psicológica correctamente.',
+        });
+        await handleMembersAdded(); // Reload team data
+      } else {
+        toast.error('Error al solicitar revisión', {
+          description: 'No se pudo enviar la solicitud. Por favor, inténtalo de nuevo.',
+        });
       }
     }
   };
@@ -174,6 +194,26 @@ export default function TeamPage({ params }: TeamPageProps) {
           </Button>
           <AlertDialog>
             <div className="flex gap-2">
+              {!team?.psychologistReviewRequested ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 border-purple-200 text-purple-700 hover:bg-purple-50"
+                  onClick={handleRequestReview}
+                  disabled={reviewLoading}
+                >
+                  <BrainCircuit className="h-4 w-4" />
+                  {reviewLoading ? 'Solicitando...' : 'Solicitar Revisión'}
+                </Button>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="flex items-center gap-1 border-purple-200 bg-purple-50 text-purple-700"
+                >
+                  <Brain className="h-4 w-4" />
+                  Revisión Psicológica Solicitada
+                </Badge>
+              )}
               <AddTeamMemberComponent teamId={teamId} onMembersAdded={handleMembersAdded} />
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" className="flex items-center gap-1">

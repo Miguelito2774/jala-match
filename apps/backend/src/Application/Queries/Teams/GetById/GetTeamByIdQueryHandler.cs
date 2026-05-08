@@ -61,6 +61,7 @@ internal sealed class GetTeamByIdQueryHandler : IQueryHandler<GetTeamByIdQuery, 
                     ? JsonSerializer.Deserialize<WeightCriteria>(team.WeightCriteria)
                     : null,
             IsActive = team.IsActive,
+            PsychologistReviewRequested = team.PsychologistReviewRequested,
         };
 
         return Result.Success(response);

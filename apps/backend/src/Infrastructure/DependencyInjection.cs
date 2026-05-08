@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IEmailTemplateService, EmailTemplateService>();
         services.AddScoped<IImageStorageService, ImageStorageService>();
+        services.AddScoped<IPsychologistReviewRepository, PsychologistReviewRepository>();
 
         // Background notification service
         services.AddSingleton<IBackgroundNotificationQueue, BackgroundNotificationService>();

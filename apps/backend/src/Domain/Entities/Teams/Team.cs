@@ -1,4 +1,4 @@
-﻿using Domain.Entities.Users;
+using Domain.Entities.Users;
 using SharedKernel.Domain;
 
 namespace Domain.Entities.Teams;
@@ -14,8 +14,11 @@ public class Team : Entity
 
     public int TeamSize { get; set; }
 
+    public bool PsychologistReviewRequested { get; set; }
+
     // Navigation
     public User Creator { get; set; }
     public List<TeamRequiredTechnology> RequiredTechnologies { get; set; } = new();
     public List<TeamMember> Members { get; set; } = new();
+    public List<PsychologistReview> PsychologistReviews { get; set; } = new();
 }

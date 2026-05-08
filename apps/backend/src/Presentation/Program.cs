@@ -98,6 +98,7 @@ if (app.Environment.IsDevelopment())
     IApplicationDbContext dbContext =
         scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
     await AdminSeeder.SeedAdminUser(dbContext);
+    await PsychologistSeeder.SeedPsychologistUser(dbContext);
 }
 
 app.MapHealthChecks(

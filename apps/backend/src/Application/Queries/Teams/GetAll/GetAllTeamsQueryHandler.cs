@@ -54,6 +54,7 @@ internal sealed class GetAllTeamsQueryHandler : IQueryHandler<GetAllTeamsQuery, 
                         ? JsonSerializer.Deserialize<WeightCriteria>(team.WeightCriteria)
                         : null,
                 IsActive = team.IsActive,
+                PsychologistReviewRequested = team.PsychologistReviewRequested,
             })
             .ToList();
 

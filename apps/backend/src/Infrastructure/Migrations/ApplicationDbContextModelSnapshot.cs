@@ -592,6 +592,49 @@ namespace Infrastructure.Migrations
                     b.ToTable("work_experiences", "public");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Teams.PsychologistReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("PsychologistId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("psychologist_id");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("team_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_psychologist_reviews");
+
+                    b.HasIndex("PsychologistId")
+                        .HasDatabaseName("ix_psychologist_reviews_psychologist_id");
+
+                    b.HasIndex("TeamId")
+                        .HasDatabaseName("ix_psychologist_reviews_team_id");
+
+                    b.ToTable("psychologist_reviews", "public");
+                });
+
             modelBuilder.Entity("Domain.Entities.Teams.RecommendedMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -652,6 +695,10 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("name");
+
+                    b.Property<bool>("PsychologistReviewRequested")
+                        .HasColumnType("boolean")
+                        .HasColumnName("psychologist_review_requested");
 
                     b.Property<string>("WeightCriteria")
                         .HasColumnType("jsonb")
@@ -1104,6 +1151,27 @@ namespace Infrastructure.Migrations
                     b.Navigation("EmployeeProfile");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Teams.PsychologistReview", b =>
+                {
+                    b.HasOne("Domain.Entities.Users.User", "Psychologist")
+                        .WithMany()
+                        .HasForeignKey("PsychologistId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_psychologist_reviews_users_psychologist_id");
+
+                    b.HasOne("Domain.Entities.Teams.Team", "Team")
+                        .WithMany("PsychologistReviews")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_psychologist_reviews_teams_team_id");
+
+                    b.Navigation("Psychologist");
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("Domain.Entities.Teams.Team", b =>
                 {
                     b.HasOne("Domain.Entities.Users.User", "Creator")
@@ -1233,6 +1301,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.Teams.Team", b =>
                 {
                     b.Navigation("Members");
+
+                    b.Navigation("PsychologistReviews");
 
                     b.Navigation("RequiredTechnologies");
                 });
